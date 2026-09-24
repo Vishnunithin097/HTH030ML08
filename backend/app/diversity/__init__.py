@@ -1,3 +1,3 @@
-from app.diversity.diversity import DiversityCalculator
+from app.diversity.diversity import DiversityEngine, diversity_engine
 
-__all__ = ["DiversityCalculator"]
+__all__ = ["DiversityEngine", "diversity_engine"]

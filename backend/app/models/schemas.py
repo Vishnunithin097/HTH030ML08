@@ -1,6 +1,9 @@
+"""
+Pydantic v2 Schemas for Request & Response Data Models.
+"""
 import uuid
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -16,9 +19,9 @@ class UserCreate(UserBase):
 
 
 class UserResponse(UserBase):
-    signup_date: datetime
-    created_at: datetime
-    updated_at: datetime
+    signup_date: Optional[datetime] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -32,14 +35,10 @@ class BusinessMetadataBase(BaseModel):
     is_synthetic: bool = True
 
 
-class BusinessMetadataCreate(BusinessMetadataBase):
-    item_id: int
-
-
 class BusinessMetadataResponse(BusinessMetadataBase):
     item_id: int
-    created_at: datetime
-    updated_at: datetime
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -60,34 +59,13 @@ class ItemBase(BaseModel):
     is_synthetic_cold_demo: bool = False
 
 
-class ItemCreate(ItemBase):
-    created_at: Optional[datetime] = None
-
-
 class ItemResponse(ItemBase):
     created_at: Optional[datetime] = None
-    created_at_db: datetime
-    updated_at: datetime
-    business_metadata: Optional[BusinessMetadataResponse] = None
-
-    model_config = ConfigDict(from_attributes=True)
-
-
-# --- Interaction Schemas ---
-class InteractionBase(BaseModel):
-    user_id: int
-    item_id: int
-    event_type: str = Field(..., pattern="^(view|addtocart|transaction)$")
-    event_weight: Optional[float] = None
-
-
-class InteractionCreate(InteractionBase):
-    timestamp: Optional[datetime] = None
-
-
-class InteractionResponse(InteractionBase):
-    id: int
-    timestamp: datetime
+    created_at_db: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+    margin_pct: Optional[float] = None
+    inventory_count: Optional[int] = None
+    quality_score: Optional[float] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -119,7 +97,7 @@ class GuardrailConfigUpdate(BaseModel):
 
 class GuardrailConfigResponse(GuardrailConfigBase):
     config_id: int
-    updated_at: datetime
+    updated_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -141,20 +119,73 @@ class RecommendationItem(BaseModel):
     content_score: Optional[float] = None
     relevance_score: float
     business_score: Optional[float] = None
+    penalty_score: Optional[float] = 0.0
     final_score: float
     rank: int
     explanation: str
     recommendation_source: str
     is_cold_start: bool = False
+    penalty_reasons: List[str] = Field(default_factory=list)
+
+
+class GuardrailHealthSummary(BaseModel):
+    mode: str
+    top_k: int
+    churn_count: int
+    filtered_items_count: int
+    suppression_rate: float
+    health_status: str
+    health_message: str
+
+
+class GMVProjectionSummary(BaseModel):
+    projected_gmv: float
+    projected_margin_inr: float
+    avg_margin_pct: float
+    stockout_risk_items: int
 
 
 class RecommendationResponse(BaseModel):
+    request_id: str
     user_id: int
     mode: str
-    is_cold_start_user: bool
+    cold_start: bool
+    cold_start_type: Optional[str] = None
     interaction_count: int
     total_recommendations: int
+    guardrail_health: GuardrailHealthSummary
+    gmv_projection: GMVProjectionSummary
     recommendations: List[RecommendationItem]
+
+
+# --- Counterfactual & Explainability Schemas ---
+class ExplanationResponse(BaseModel):
+    item_id: int
+    user_id: int
+    name: str
+    category_name: str
+    brand: Optional[str] = None
+    relevance_score: float
+    business_score: Optional[float] = None
+    collaborative_score: Optional[float] = None
+    content_score: Optional[float] = None
+    margin_pct: Optional[float] = None
+    inventory_count: Optional[int] = None
+    quality_score: Optional[float] = None
+    explanation: str
+    signal_breakdown: Dict[str, Any]
+
+
+class CounterfactualResponse(BaseModel):
+    item_id: int
+    user_id: int
+    baseline_score: float
+    simulated_score: float
+    score_delta: float
+    simulated_business_score: float
+    simulated_penalty: float
+    reasons: List[str]
+    summary: str
 
 
 # --- Admin & Auth Schemas ---
@@ -168,11 +199,6 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
     username: str
     role: str
-
-
-class TokenData(BaseModel):
-    username: Optional[str] = None
-    role: Optional[str] = None
 
 
 # --- Cold Start Demo Payloads ---
