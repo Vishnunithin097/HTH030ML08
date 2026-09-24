@@ -105,7 +105,7 @@ export const Dashboard: React.FC = () => {
     : (currentUser?.selected_categories || []);
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6 w-full mx-auto">
       {/* Top Header Controls Bar */}
       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         {/* Left: Shopper Selector & Search */}

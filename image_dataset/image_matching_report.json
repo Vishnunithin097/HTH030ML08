@@ -1,0 +1,13 @@
+{
+  "total_products": 23541,
+  "high_confidence": 12168,
+  "medium_confidence": 11373,
+  "low_confidence": 0,
+  "products_with_usable_image": 23541,
+  "products_with_no_usable_image": 0,
+  "exact_id_matches": 240,
+  "semantic_keyword_matches": 12168,
+  "sqid_parquet_matches": 0,
+  "category_fallback_matches": 11133,
+  "generated_at": "2026-09-25 02:42:14"
+}

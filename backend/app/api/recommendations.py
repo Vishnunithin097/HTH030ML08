@@ -27,6 +27,7 @@ from app.business.reranker import reranker
 from app.business.revenue_impact import revenue_calculator
 from app.explainability.explain import explainability_engine
 from app.api.config import get_current_guardrail_policy
+from app.core.image_provider import image_provider
 
 router = APIRouter(prefix="/recommendations", tags=["Recommendations"])
 
@@ -126,7 +127,7 @@ async def get_recommendations(
         top_k=limit,
     )
 
-    # 5. Attach Signal-Backed Explanations (Layer 3)
+    # 5. Attach Signal-Backed Explanations & SQID Product Images
     response_items: List[RecommendationItem] = []
     for item in ranked_slate:
         explanation = explainability_engine.explain(
@@ -135,6 +136,16 @@ async def get_recommendations(
             is_cold_user=is_cold_shopper,
         )
         item["explanation"] = explanation
+
+        img_res = image_provider.resolve_product_image(
+            product_id=item["item_id"],
+            product_name=item.get("name"),
+            category=item.get("category_name"),
+            sub_category=item.get("subcategory"),
+            brand=item.get("brand"),
+            existing_url=None,
+            existing_source=item.get("image_source"),
+        )
 
         response_items.append(RecommendationItem(
             item_id=item["item_id"],
@@ -146,9 +157,9 @@ async def get_recommendations(
             brand=item.get("brand"),
             description=item.get("description"),
             price=item.get("price"),
-            image_url=item.get("image_url"),
-            image_source=item.get("image_source", "fallback"),
-            image_status=item.get("image_status", "fallback"),
+            image_url=img_res["image_url"],
+            image_source=img_res["image_source"],
+            image_status=img_res["image_status"],
             rating=item.get("rating", 4.0),
             margin_pct=item.get("margin_pct"),
             inventory_count=item.get("inventory_count"),
