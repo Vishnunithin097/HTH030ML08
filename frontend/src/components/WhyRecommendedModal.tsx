@@ -131,7 +131,7 @@ export const WhyRecommendedModal: React.FC<WhyRecommendedModalProps> = ({ item, 
               Score Decomposition & ML Signals
             </h5>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-              <div className="p-2.5 rounded-xl border border-slate-200/80 bg-white shadow-2xs">
+              <div className="p-2.5 rounded-xl border border-slate-200/80 bg-white shadow-xs">
                 <span className="text-slate-400 block text-[10px] font-medium">Relevance Score</span>
                 <span className="text-base font-bold text-blue-600">
                   {(item.relevance_score * 100).toFixed(1)}%
@@ -141,7 +141,7 @@ export const WhyRecommendedModal: React.FC<WhyRecommendedModalProps> = ({ item, 
                 </span>
               </div>
 
-              <div className="p-2.5 rounded-xl border border-slate-200/80 bg-white shadow-2xs">
+              <div className="p-2.5 rounded-xl border border-slate-200/80 bg-white shadow-xs">
                 <span className="text-slate-400 block text-[10px] font-medium">Business Value</span>
                 <span className="text-base font-bold text-emerald-600">
                   {((item.business_score ?? 0.5) * 100).toFixed(1)}%
@@ -149,7 +149,7 @@ export const WhyRecommendedModal: React.FC<WhyRecommendedModalProps> = ({ item, 
                 <span className="text-[10px] text-slate-400 block mt-0.5">Margin + Inventory + Quality</span>
               </div>
 
-              <div className="p-2.5 rounded-xl border border-slate-200/80 bg-white shadow-2xs">
+              <div className="p-2.5 rounded-xl border border-slate-200/80 bg-white shadow-xs">
                 <span className="text-slate-400 block text-[10px] font-medium">Soft Penalties</span>
                 <span className={`text-base font-bold ${item.penalty_score ? 'text-amber-600' : 'text-slate-600'}`}>
                   {item.penalty_score ? `-${(item.penalty_score * 100).toFixed(1)}%` : '0.0%'}
@@ -157,7 +157,7 @@ export const WhyRecommendedModal: React.FC<WhyRecommendedModalProps> = ({ item, 
                 <span className="text-[10px] text-slate-400 block mt-0.5">Deficit adjustment</span>
               </div>
 
-              <div className="p-2.5 rounded-xl border border-slate-200/80 bg-slate-900 text-white shadow-2xs">
+              <div className="p-2.5 rounded-xl border border-slate-200/80 bg-slate-900 text-white shadow-xs">
                 <span className="text-slate-300 block text-[10px] font-medium">Final Ranking Score</span>
                 <span className="text-base font-bold text-white">
                   {(item.final_score * 100).toFixed(1)}%
@@ -223,7 +223,7 @@ export const WhyRecommendedModal: React.FC<WhyRecommendedModalProps> = ({ item, 
             </button>
 
             {counterfactual && (
-              <div className="mt-3 p-3 bg-white rounded-lg border border-indigo-100 shadow-2xs text-xs space-y-1.5">
+              <div className="mt-3 p-3 bg-white rounded-lg border border-indigo-100 shadow-xs text-xs space-y-1.5">
                 <div className="flex items-center justify-between font-semibold">
                   <span className="text-slate-600">Score Impact:</span>
                   <span className={counterfactual.score_delta >= 0 ? 'text-emerald-600 font-bold' : 'text-rose-600 font-bold'}>

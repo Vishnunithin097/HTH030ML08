@@ -202,7 +202,7 @@ export const GuardrailConfigPanel: React.FC = () => {
             Business Factor Sub-Weights
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-3.5 rounded-xl border border-slate-200/80 bg-white shadow-2xs">
+            <div className="p-3.5 rounded-xl border border-slate-200/80 bg-white shadow-xs">
               <div className="flex justify-between text-xs font-semibold text-slate-700 mb-1">
                 <span>Margin Weight</span>
                 <span className="font-bold text-emerald-700">{(config.margin_weight * 100).toFixed(0)}%</span>
@@ -219,7 +219,7 @@ export const GuardrailConfigPanel: React.FC = () => {
               <span className="text-[10px] text-slate-400">Yield prioritization</span>
             </div>
 
-            <div className="p-3.5 rounded-xl border border-slate-200/80 bg-white shadow-2xs">
+            <div className="p-3.5 rounded-xl border border-slate-200/80 bg-white shadow-xs">
               <div className="flex justify-between text-xs font-semibold text-slate-700 mb-1">
                 <span>Inventory Weight</span>
                 <span className="font-bold text-blue-700">{(config.inventory_weight * 100).toFixed(0)}%</span>
@@ -236,7 +236,7 @@ export const GuardrailConfigPanel: React.FC = () => {
               <span className="text-[10px] text-slate-400">Stockout mitigation</span>
             </div>
 
-            <div className="p-3.5 rounded-xl border border-slate-200/80 bg-white shadow-2xs">
+            <div className="p-3.5 rounded-xl border border-slate-200/80 bg-white shadow-xs">
               <div className="flex justify-between text-xs font-semibold text-slate-700 mb-1">
                 <span>Quality Weight</span>
                 <span className="font-bold text-amber-700">{(config.quality_weight * 100).toFixed(0)}%</span>

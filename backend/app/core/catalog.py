@@ -85,10 +85,8 @@ class UnifiedCatalog:
             if cat_col in df.columns:
                 self._categories_cache = sorted(df[cat_col].dropna().unique().tolist())
 
-            for _, row in df.iterrows():
-                pid = int(row.get("index", row.get("product_id", 0)))
-                if pid == 0:
-                    continue
+            for idx, row in df.iterrows():
+                pid = int(row.get("index", idx))
 
                 price = float(row.get("sale_price", row.get("market_price", 299.0)))
                 # Deterministic synthetic business layer based on pid
@@ -187,6 +185,24 @@ class UnifiedCatalog:
         if not self._initialized:
             self.initialize_from_metadata()
         return list(self._items_cache.values())
+
+    def get_items_by_category(self, category: str, limit: int = 50) -> List[Any]:
+        if not self._initialized:
+            self.initialize_from_metadata()
+        cat_lower = category.lower().strip()
+        matched = []
+        for item in self._items_cache.values():
+            if isinstance(item, dict):
+                item_cat = str(item.get("category_name") or "").lower()
+                item_sub = str(item.get("subcategory") or "").lower()
+            else:
+                item_cat = str(getattr(item, "category_name", "") or "").lower()
+                item_sub = str(getattr(item, "subcategory", "") or "").lower()
+            if cat_lower in item_cat or cat_lower in item_sub:
+                matched.append(item)
+                if len(matched) >= limit:
+                    break
+        return matched
 
     def get_all_users(self) -> List[Dict[str, Any]]:
         if not self._initialized:

@@ -13,6 +13,12 @@ from app.core.catalog import catalog, CatalogItem
 router = APIRouter(tags=["Items"])
 
 
+def _get_val(obj, key, default=None):
+    if isinstance(obj, dict):
+        return obj.get(key, default)
+    return getattr(obj, key, default)
+
+
 @router.get("/items", response_model=List[ItemResponse])
 async def list_items(
     search: Optional[str] = Query(None, description="Keyword search in product title/brand"),
@@ -30,30 +36,31 @@ async def list_items(
     filtered = all_items
     if category:
         cat_lower = category.lower().strip()
-        filtered = [i for i in filtered if cat_lower in (i.category_name or "").lower()]
+        filtered = [i for i in filtered if cat_lower in str(_get_val(i, "category_name") or "").lower()]
 
     if search:
         search_lower = search.lower().strip()
         filtered = [
             i for i in filtered
-            if search_lower in (i.name or "").lower() or search_lower in (i.brand or "").lower()
+            if search_lower in str(_get_val(i, "name") or "").lower()
+            or search_lower in str(_get_val(i, "brand") or "").lower()
         ]
 
     paged = filtered[offset : offset + limit]
 
     return [
         ItemResponse(
-            item_id=i.item_id,
-            name=i.name,
-            category_name=i.category_name,
-            subcategory=i.subcategory,
-            brand=i.brand,
-            price=i.price,
-            margin_pct=i.margin_pct,
-            inventory_count=i.inventory_count,
-            quality_score=i.quality_score,
-            tags=[i.category_name.lower(), (i.subcategory or "").lower()],
-            is_synthetic_cold_demo=i.is_cold_demo,
+            item_id=_get_val(i, "item_id"),
+            name=_get_val(i, "name"),
+            category_name=_get_val(i, "category_name"),
+            subcategory=_get_val(i, "subcategory"),
+            brand=_get_val(i, "brand"),
+            price=float(_get_val(i, "price") or 299.0),
+            margin_pct=float(_get_val(i, "margin_pct") or 20.0),
+            inventory_count=int(_get_val(i, "inventory_count") or 100),
+            quality_score=float(_get_val(i, "quality_score") or 0.8),
+            tags=[str(_get_val(i, "category_name") or "General").lower()],
+            is_synthetic_cold_demo=bool(_get_val(i, "is_cold_demo") or _get_val(i, "is_synthetic_cold_demo")),
         )
         for i in paged
     ]

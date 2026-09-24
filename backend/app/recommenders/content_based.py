@@ -109,4 +109,51 @@ class ContentBasedRecommender:
         return float(np.round(max(0.0, min(sim, 1.0)), 5))
 
 
+    def recommend(
+        self,
+        user_profile_vec: Optional[sp.csr_matrix] = None,
+        interacted_product_ids: Optional[List[int]] = None,
+        category_preferences: Optional[List[str]] = None,
+        candidate_product_ids: Optional[List[int]] = None,
+        interacted_to_exclude: Optional[List[int]] = None,
+        top_k: int = 10,
+    ) -> List[Dict[str, Any]]:
+        """
+        Generates top-K content-based recommendations by comparing candidate TF-IDF vectors
+        with user profile representation or stated category preferences.
+        """
+        if user_profile_vec is None:
+            user_profile_vec = self.build_user_profile_vector(
+                interacted_product_ids=interacted_product_ids,
+                category_preferences=category_preferences,
+            )
+
+        if user_profile_vec is None or self.store.tfidf_matrix is None:
+            return []
+
+        excluded = set(interacted_to_exclude or interacted_product_ids or [])
+
+        if candidate_product_ids is None:
+            candidate_product_ids = list(self.store.product_id_to_row.keys())[:500]
+
+        scored_candidates = []
+        for pid in candidate_product_ids:
+            if pid in excluded:
+                continue
+
+            score = self.predict_score(user_profile_vec, pid)
+            if score is not None:
+                scored_candidates.append({
+                    "item_id": pid,
+                    "content_score": score,
+                    "recommendation_source": "tfidf_content_based",
+                })
+
+        scored_candidates.sort(key=lambda x: x["content_score"], reverse=True)
+        for idx, item in enumerate(scored_candidates[:top_k]):
+            item["rank"] = idx + 1
+
+        return scored_candidates[:top_k]
+
+
 content_recommender = ContentBasedRecommender()

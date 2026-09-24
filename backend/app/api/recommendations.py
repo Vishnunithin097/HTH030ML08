@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.db.session import get_async_db
-from app.models.db_models import User, Item, RecommendationLog
+from app.models.db_models import User, Item, Interaction, RecommendationLog
 from app.models.schemas import (
     RecommendationResponse,
     ExplanationResponse,
@@ -60,6 +60,11 @@ async def get_recommendations(
             if user_record.is_synthetic_cold_demo:
                 is_cold_shopper = True
                 cold_type = "synthetic_cold_demo_shopper"
+
+        stmt_int = select(Interaction.item_id).where(Interaction.user_id == user_id)
+        res_int = await db.execute(stmt_int)
+        interacted_ids = [r[0] for r in res_int.fetchall()]
+        interaction_count = len(interacted_ids)
     except Exception:
         pass
 
@@ -215,33 +220,37 @@ async def get_item_explanation(
 
     # Compute signals
     cf_score = hybrid_recommender.recommend(user_id=user_id, candidate_items=[item])
-    item_dict = item.to_dict()
+    item_dict = dict(item)
     if cf_score:
         item_dict.update(cf_score[0])
 
     explanation = explainability_engine.explain(item_dict)
 
+    margin_val = item_dict.get("margin_pct")
+    inv_val = item_dict.get("inventory_count")
+    qual_val = item_dict.get("quality_score")
+
     return ExplanationResponse(
         item_id=item_id,
         user_id=user_id,
-        name=item.name,
-        category_name=item.category_name,
-        brand=item.brand,
+        name=item_dict.get("name"),
+        category_name=item_dict.get("category_name"),
+        brand=item_dict.get("brand"),
         relevance_score=item_dict.get("relevance_score", 0.5),
         business_score=item_dict.get("business_score"),
         collaborative_score=item_dict.get("collaborative_score"),
         content_score=item_dict.get("content_score"),
-        margin_pct=item.margin_pct,
-        inventory_count=item.inventory_count,
-        quality_score=item.quality_score,
+        margin_pct=float(margin_val) if margin_val is not None else 20.0,
+        inventory_count=int(inv_val) if inv_val is not None else 100,
+        quality_score=float(qual_val) if qual_val is not None else 0.8,
         explanation=explanation,
         signal_breakdown={
             "collaborative_available": item_dict.get("collaborative_score") is not None,
             "content_available": item_dict.get("content_score") is not None,
-            "is_cold_demo_item": item.is_cold_demo,
-            "category": item.category_name,
-            "margin_pct": item.margin_pct,
-            "inventory_count": item.inventory_count,
+            "is_cold_demo_item": bool(item_dict.get("is_cold_demo") or item_dict.get("is_synthetic_cold_demo")),
+            "category": item_dict.get("category_name"),
+            "margin_pct": margin_val,
+            "inventory_count": inv_val,
         },
     )
 
@@ -270,11 +279,15 @@ async def get_counterfactual_analysis(
     policy = get_current_guardrail_policy()
     relevance = 0.70  # Baseline estimated relevance
 
+    margin_val = float(item.get("margin_pct") or 20.0)
+    inv_val = int(item.get("inventory_count") or 100)
+    qual_val = float(item.get("quality_score") or 0.8)
+
     cf_eval = guardrail_evaluator.evaluate_counterfactual(
         relevance_score=relevance,
-        margin_pct=item.margin_pct,
-        inventory_count=item.inventory_count,
-        quality_score=item.quality_score,
+        margin_pct=margin_val,
+        inventory_count=inv_val,
+        quality_score=qual_val,
         current_final_score=0.68,
         hypothetical_min_margin=hypothetical_min_margin,
         hypothetical_min_inventory=hypothetical_min_inventory,

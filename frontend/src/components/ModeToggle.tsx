@@ -10,7 +10,7 @@ interface ModeToggleProps {
 
 export const ModeToggle: React.FC<ModeToggleProps> = ({ mode, onChange, disabled }) => {
   return (
-    <div className="inline-flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-2xs">
+    <div className="inline-flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 shadow-sm">
       <button
         type="button"
         disabled={disabled}

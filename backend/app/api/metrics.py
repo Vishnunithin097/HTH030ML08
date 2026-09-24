@@ -30,7 +30,11 @@ async def get_ranking_metrics(db: AsyncSession = Depends(get_async_db)):
     rec_ids = [r["item_id"] for r in recs]
 
     # Ground truth: top relevant items by high rating & matching category
-    high_qual_ids = [i.item_id for i in sample_items if (i.quality_score or 0) >= 0.70]
+    high_qual_ids = [
+        (i["item_id"] if isinstance(i, dict) else i.item_id)
+        for i in sample_items
+        if ((i.get("quality_score") if isinstance(i, dict) else i.quality_score) or 0) >= 0.70
+    ]
     ground_truth = set(high_qual_ids[:15])
 
     ndcg = compute_ndcg_at_k(rec_ids, ground_truth, k=10)

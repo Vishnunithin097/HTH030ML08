@@ -204,7 +204,7 @@ export const Dashboard: React.FC = () => {
       {/* Financial Simulation / Projection Bar */}
       {recoResponse?.gmv_projection && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs">
+          <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
             <span className="text-[10px] text-slate-400 font-semibold block uppercase">Projected GMV</span>
             <span className="text-base font-bold text-slate-900 font-mono">
               ₹{recoResponse.gmv_projection.projected_gmv.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
@@ -212,7 +212,7 @@ export const Dashboard: React.FC = () => {
             <span className="text-[10px] text-slate-400 block mt-0.5">Top-12 slate projection</span>
           </div>
 
-          <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs">
+          <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
             <span className="text-[10px] text-slate-400 font-semibold block uppercase">Projected Margin Yield</span>
             <span className="text-base font-bold text-emerald-600 font-mono">
               ₹{recoResponse.gmv_projection.projected_margin_inr.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
@@ -220,7 +220,7 @@ export const Dashboard: React.FC = () => {
             <span className="text-[10px] text-slate-400 block mt-0.5">Estimated gross margin</span>
           </div>
 
-          <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs">
+          <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
             <span className="text-[10px] text-slate-400 font-semibold block uppercase">Avg Slate Margin</span>
             <span className="text-base font-bold text-slate-900 font-mono">
               {recoResponse.gmv_projection.avg_margin_pct.toFixed(1)}%
@@ -228,7 +228,7 @@ export const Dashboard: React.FC = () => {
             <span className="text-[10px] text-slate-400 block mt-0.5">Portfolio profitability</span>
           </div>
 
-          <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs">
+          <div className="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
             <span className="text-[10px] text-slate-400 font-semibold block uppercase">Stockout Risk Items</span>
             <span className={`text-base font-bold font-mono ${recoResponse.gmv_projection.stockout_risk_items > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
               {recoResponse.gmv_projection.stockout_risk_items} items
@@ -250,7 +250,7 @@ export const Dashboard: React.FC = () => {
           <button
             onClick={fetchRecommendations}
             disabled={loading}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-semibold border border-slate-200 shadow-2xs transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-semibold border border-slate-200 shadow-xs transition-colors"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             Refresh Feed

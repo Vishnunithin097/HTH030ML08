@@ -24,13 +24,13 @@ const NavigationBar: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Brand & Logo */}
         <Link to="/" className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-xs">
-            <ShieldCheck className="w-4.5 h-4.5 text-emerald-400" />
+          <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-sm">
+            <ShieldCheck className="w-4 h-4 text-emerald-400" />
           </div>
           <div>
             <div className="flex items-center gap-1.5">
               <span className="text-sm font-bold text-slate-900 tracking-tight">RecoGuard</span>
-              <span className="text-[10px] font-semibold bg-emerald-50 text-emerald-700 px-1.5 py-0.2 rounded border border-emerald-200">PROD</span>
+              <span className="text-[10px] font-semibold bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded border border-emerald-200">PROD</span>
             </div>
             <p className="text-[10px] text-slate-400 font-medium">Recommendation Intelligence with Business Guardrails</p>
           </div>
@@ -76,7 +76,7 @@ const NavigationBar: React.FC = () => {
           ) : (
             <Link
               to="/admin/login"
-              className="flex items-center gap-1 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold transition-colors shadow-2xs"
+              className="flex items-center gap-1 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold transition-colors shadow-sm"
             >
               <Lock className="w-3.5 h-3.5 text-slate-300" />
               Admin Portal

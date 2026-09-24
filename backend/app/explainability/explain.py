@@ -51,7 +51,7 @@ class ExplainabilityEngine:
         # 4. Hybrid CF + Content Explanations
         if source == "hybrid_cf_content":
             if item.get("guardrail_applied") and (margin_pct or 0) >= 30.0 and inventory >= 50:
-                return f"Personalized hybrid match in '{category}' verified in-stock with top seller rating ({int(quality*5)}★)."
+                return f"Personalized hybrid match in '{category}' verified in-stock with top seller rating ({int(quality*5)}/5)."
             return f"Blended pick combining community co-purchase affinity and your preference for '{category}'."
 
         # 5. Fallback Catalog Explanation
@@ -59,3 +59,5 @@ class ExplainabilityEngine:
 
 
 explainability_engine = ExplainabilityEngine()
+ExplanationEngine = ExplainabilityEngine
+explanation_engine = explainability_engine

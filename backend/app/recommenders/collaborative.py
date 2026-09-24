@@ -84,4 +84,50 @@ class CollaborativeRecommender:
         return float(np.round((cos_sim + 1.0) / 2.0, 5))
 
 
+    def recommend(
+        self,
+        user_id: int,
+        candidate_item_ids: Optional[List[int]] = None,
+        interacted_item_ids: Optional[List[int]] = None,
+        top_k: int = 10,
+    ) -> List[Dict[str, Any]]:
+        """
+        Generates top-K collaborative candidate recommendations for an existing user.
+        Excludes previously interacted items and returns ranked scores.
+        """
+        if not self.is_user_available(user_id):
+            return []
+
+        u_factors = self.store.get_user_factors(user_id)
+        if u_factors is None:
+            return []
+
+        excluded = set(interacted_item_ids or [])
+
+        # If candidates not explicitly specified, scan available trained items
+        if candidate_item_ids is None:
+            candidate_item_ids = list(self.store.item_id_to_idx.keys())[:500]
+
+        scored_candidates = []
+        for item_id in candidate_item_ids:
+            if item_id in excluded:
+                continue
+
+            i_factors = self.store.get_item_factors(item_id)
+            if i_factors is not None:
+                raw_dot = float(np.dot(u_factors, i_factors))
+                score = 1.0 / (1.0 + np.exp(-np.clip(raw_dot, -10.0, 10.0)))
+                scored_candidates.append({
+                    "item_id": item_id,
+                    "collaborative_score": float(np.round(score, 5)),
+                    "recommendation_source": "svd_collaborative",
+                })
+
+        scored_candidates.sort(key=lambda x: x["collaborative_score"], reverse=True)
+        for idx, item in enumerate(scored_candidates[:top_k]):
+            item["rank"] = idx + 1
+
+        return scored_candidates[:top_k]
+
+
 collaborative_recommender = CollaborativeRecommender()

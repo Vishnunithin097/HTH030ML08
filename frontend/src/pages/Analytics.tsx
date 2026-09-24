@@ -82,7 +82,7 @@ export const Analytics: React.FC = () => {
 
         <button
           onClick={fetchMetrics}
-          className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
+          className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold shadow-sm transition-colors cursor-pointer"
         >
           <RefreshCw className="w-3.5 h-3.5" />
           Refresh Live Metrics

@@ -127,7 +127,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ item, onExplainClick }
 
         <button
           onClick={() => onExplainClick(item)}
-          className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-slate-700 bg-white hover:bg-slate-100 hover:text-slate-900 rounded-md border border-slate-200 shadow-2xs transition-colors"
+          className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-slate-700 bg-white hover:bg-slate-100 hover:text-slate-900 rounded-md border border-slate-200 shadow-sm transition-colors"
         >
           <Info className="w-3 h-3 text-emerald-600" />
           <span>Why This?</span>

@@ -10,6 +10,12 @@ from app.recommenders.content_based import content_recommender
 from app.core.preprocessing import clean_text
 
 
+def _get_val(obj: Any, key: str, default: Any = None) -> Any:
+    if isinstance(obj, dict):
+        return obj.get(key, default)
+    return getattr(obj, key, default)
+
+
 class ColdStartEngine:
     """
     Identifies cold-start states and generates signal-backed candidate recommendations
@@ -32,7 +38,8 @@ class ColdStartEngine:
         self,
         user_id: int,
         selected_categories: List[str],
-        candidate_items: List[CatalogItem],
+        candidate_items: List[Any],
+        interacted_item_ids: Optional[List[int]] = None,
         limit: int = 10,
     ) -> List[Dict[str, Any]]:
         """
@@ -49,38 +56,43 @@ class ColdStartEngine:
 
         scored_candidates = []
         normalized_cats = [c.lower().strip() for c in selected_categories if c]
+        excluded_ids = set(interacted_item_ids or [])
 
         for item in candidate_items:
+            item_id = _get_val(item, "item_id")
+            if item_id is None or item_id in excluded_ids:
+                continue
+
             # Check direct category match
-            item_cat = (item.category_name or "").lower().strip()
-            item_sub = (item.subcategory or "").lower().strip()
+            item_cat = str(_get_val(item, "category_name") or "").lower().strip()
+            item_sub = str(_get_val(item, "subcategory") or "").lower().strip()
             has_cat_match = any(cat in item_cat or cat in item_sub for cat in normalized_cats)
 
             # Compute content semantic score
             content_score = 0.0
             if query_vec is not None:
-                sim = content_recommender.predict_score(query_vec, item.item_id)
+                sim = content_recommender.predict_score(query_vec, item_id)
                 content_score = sim if sim is not None else 0.0
 
             # Direct category alignment boost
             category_boost = 0.35 if has_cat_match else 0.0
             # Quality & baseline rating score (0.0 to 0.15)
-            quality_factor = (item.quality_score or 0.5) * 0.15
+            quality_factor = float(_get_val(item, "quality_score") or 0.5) * 0.15
 
             # Total relevance in [0, 1]
             relevance_score = float(np.clip(content_score * 0.5 + category_boost + quality_factor, 0.0, 1.0))
 
             scored_candidates.append({
-                "item_id": item.item_id,
-                "name": item.name,
-                "category_name": item.category_name,
-                "subcategory": item.subcategory,
-                "brand": item.brand,
-                "price": item.price,
-                "margin_pct": item.margin_pct,
-                "inventory_count": item.inventory_count,
-                "quality_score": item.quality_score,
-                "business_priority": item.business_priority,
+                "item_id": item_id,
+                "name": _get_val(item, "name"),
+                "category_name": _get_val(item, "category_name"),
+                "subcategory": _get_val(item, "subcategory"),
+                "brand": _get_val(item, "brand"),
+                "price": _get_val(item, "price", 299.0),
+                "margin_pct": _get_val(item, "margin_pct", 20.0),
+                "inventory_count": _get_val(item, "inventory_count", 100),
+                "quality_score": _get_val(item, "quality_score", 0.7),
+                "business_priority": _get_val(item, "business_priority", 0.0),
                 "collaborative_score": None,  # Explicitly None (NOT fake 0.0)
                 "content_score": round(content_score, 5),
                 "relevance_score": round(relevance_score, 5),
@@ -94,33 +106,34 @@ class ColdStartEngine:
 
     def score_cold_item(
         self,
-        cold_item: CatalogItem,
+        cold_item: Any,
         user_category_preferences: List[str] = None,
         user_profile_vec = None
     ) -> Dict[str, Any]:
         """
         Evaluates relevance for a cold-start item without collaborative factors.
         """
+        item_id = _get_val(cold_item, "item_id")
         content_score = 0.0
-        if user_profile_vec is not None:
-            sim = content_recommender.predict_score(user_profile_vec, cold_item.item_id)
+        if user_profile_vec is not None and item_id is not None:
+            sim = content_recommender.predict_score(user_profile_vec, item_id)
             content_score = sim if sim is not None else 0.0
 
         # Business priority auxiliary boost for strategic new item placement
-        prio_boost = (cold_item.business_priority or 0.0) * 0.20
+        prio_boost = float(_get_val(cold_item, "business_priority") or 0.0) * 0.20
         relevance_score = float(np.clip(content_score * 0.8 + prio_boost, 0.0, 1.0))
 
         return {
-            "item_id": cold_item.item_id,
-            "name": cold_item.name,
-            "category_name": cold_item.category_name,
-            "subcategory": cold_item.subcategory,
-            "brand": cold_item.brand,
-            "price": cold_item.price,
-            "margin_pct": cold_item.margin_pct,
-            "inventory_count": cold_item.inventory_count,
-            "quality_score": cold_item.quality_score,
-            "business_priority": cold_item.business_priority,
+            "item_id": item_id,
+            "name": _get_val(cold_item, "name"),
+            "category_name": _get_val(cold_item, "category_name"),
+            "subcategory": _get_val(cold_item, "subcategory"),
+            "brand": _get_val(cold_item, "brand"),
+            "price": _get_val(cold_item, "price", 299.0),
+            "margin_pct": _get_val(cold_item, "margin_pct", 20.0),
+            "inventory_count": _get_val(cold_item, "inventory_count", 100),
+            "quality_score": _get_val(cold_item, "quality_score", 0.7),
+            "business_priority": _get_val(cold_item, "business_priority", 0.0),
             "collaborative_score": None,
             "content_score": round(content_score, 5),
             "relevance_score": round(relevance_score, 5),

@@ -12,6 +12,12 @@ from app.recommenders.content_based import content_recommender
 from app.recommenders.cold_start import cold_start_engine
 
 
+def _get_val(obj: Any, key: str, default: Any = None) -> Any:
+    if isinstance(obj, dict):
+        return obj.get(key, default)
+    return getattr(obj, key, default)
+
+
 class HybridRecommender:
     """
     Blends Collaborative Filtering latent factors and Content-Based TF-IDF representations.
@@ -34,7 +40,7 @@ class HybridRecommender:
         interaction_count: int = 0,
         interacted_item_ids: List[int] = None,
         selected_categories: List[str] = None,
-        candidate_items: List[CatalogItem] = None,
+        candidate_items: List[Any] = None,
         limit: int = 20,
     ) -> List[Dict[str, Any]]:
         """
@@ -51,6 +57,7 @@ class HybridRecommender:
                 user_id=user_id,
                 selected_categories=selected_categories or ["General"],
                 candidate_items=candidate_items,
+                interacted_item_ids=interacted_item_ids,
                 limit=limit,
             )
 
@@ -61,10 +68,16 @@ class HybridRecommender:
         )
 
         scored_candidates: List[Dict[str, Any]] = []
+        excluded_ids = set(interacted_item_ids or [])
 
         for item in candidate_items:
+            item_id = _get_val(item, "item_id")
+            if item_id is None or item_id in excluded_ids:
+                continue
+
             # Check for cold-start item
-            if item.is_cold_demo:
+            is_cold_demo = bool(_get_val(item, "is_cold_demo", False) or _get_val(item, "is_synthetic_cold_demo", False))
+            if is_cold_demo:
                 cold_scored = cold_start_engine.score_cold_item(
                     cold_item=item,
                     user_category_preferences=selected_categories,
@@ -74,12 +87,12 @@ class HybridRecommender:
                 continue
 
             # Compute Collaborative Score
-            cf_score = collaborative_recommender.predict_score(user_id, item.item_id)
+            cf_score = collaborative_recommender.predict_score(user_id, item_id)
 
             # Compute Content Score
             content_score = None
             if user_profile_vec is not None:
-                content_score = content_recommender.predict_score(user_profile_vec, item.item_id)
+                content_score = content_recommender.predict_score(user_profile_vec, item_id)
 
             # Determine fusion mode & calculate relevance
             if cf_score is not None and content_score is not None:
@@ -93,20 +106,20 @@ class HybridRecommender:
                 source = "content_only"
             else:
                 # Baseline category / rating heuristic for unmapped items
-                relevance = (item.quality_score or 0.5) * 0.4
+                relevance = float(_get_val(item, "quality_score") or 0.5) * 0.4
                 source = "catalog_baseline"
 
             scored_candidates.append({
-                "item_id": item.item_id,
-                "name": item.name,
-                "category_name": item.category_name,
-                "subcategory": item.subcategory,
-                "brand": item.brand,
-                "price": item.price,
-                "margin_pct": item.margin_pct,
-                "inventory_count": item.inventory_count,
-                "quality_score": item.quality_score,
-                "business_priority": item.business_priority,
+                "item_id": item_id,
+                "name": _get_val(item, "name"),
+                "category_name": _get_val(item, "category_name"),
+                "subcategory": _get_val(item, "subcategory"),
+                "brand": _get_val(item, "brand"),
+                "price": _get_val(item, "price", 299.0),
+                "margin_pct": _get_val(item, "margin_pct", 20.0),
+                "inventory_count": _get_val(item, "inventory_count", 100),
+                "quality_score": _get_val(item, "quality_score", 0.7),
+                "business_priority": _get_val(item, "business_priority", 0.0),
                 "collaborative_score": round(cf_score, 5) if cf_score is not None else None,
                 "content_score": round(content_score, 5) if content_score is not None else None,
                 "relevance_score": round(float(np.clip(relevance, 0.0, 1.0)), 5),

@@ -55,6 +55,10 @@ class FeatureStore:
         self.load_retailrocket()
         self.load_bigbasket()
 
+    def load_artifacts(self):
+        """Alias for initialize_all."""
+        self.initialize_all()
+
     def load_retailrocket(self):
         """Loads SVD model, factor matrices, and label encoders."""
         if self._retailrocket_loaded:
