@@ -1,3 +1,11 @@
-from app.explainability.explain import ExplainabilityEngine, explainability_engine
+from app.explainability.explain import ExplanationEngine, explanation_engine
 
-__all__ = ["ExplainabilityEngine", "explainability_engine"]
+ExplainabilityEngine = ExplanationEngine
+explainability_engine = explanation_engine
+
+__all__ = [
+    "ExplanationEngine",
+    "explanation_engine",
+    "ExplainabilityEngine",
+    "explainability_engine",
+]

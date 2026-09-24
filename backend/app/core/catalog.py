@@ -68,7 +68,9 @@ class UnifiedCatalog:
     """Manages catalog item lookup and retrieval across sources."""
 
     def __init__(self):
-        self._items_cache: Dict[int, CatalogItem] = {}
+        self._items_cache: Dict[int, Dict[str, Any]] = {}
+        self._biz_cache: Dict[int, Dict[str, Any]] = {}
+        self._users_cache: Dict[int, Dict[str, Any]] = {}
         self._categories_cache: List[str] = []
         self._initialized: bool = False
 
@@ -77,70 +79,125 @@ class UnifiedCatalog:
         if self._initialized:
             return
 
-        df = feature_store.product_metadata
+        df = feature_store.bigbasket_meta
         if df is not None:
-            self._categories_cache = sorted(df["category"].dropna().unique().tolist())
-            for _, row in df.iterrows():
-                pid = int(row["product_id"])
-                # Extract margin reference if available, else standard 20%
-                margin_ref = float(row.get("margin_reference", 0.0))
-                margin_pct = round(margin_ref * 100.0, 2) if margin_ref > 0 else 20.00
-                price = float(row.get("sale_price", 299.0))
-                
-                item = CatalogItem(
-                    item_id=pid,
-                    name=str(row.get("product", f"Product #{pid}")),
-                    category_name=str(row.get("category", "General")),
-                    subcategory=str(row.get("sub_category", "")),
-                    brand=str(row.get("brand", "")),
-                    price=price,
-                    margin_pct=margin_pct,
-                    inventory_count=100,
-                    quality_score=0.75,
-                    business_priority=0.0,
-                    source="bigbasket",
-                    source_id=pid,
-                )
-                self._items_cache[pid] = item
+            cat_col = "category" if "category" in df.columns else "category_name"
+            if cat_col in df.columns:
+                self._categories_cache = sorted(df[cat_col].dropna().unique().tolist())
 
-            # Add seeded cold-start demo item
-            cold_item = CatalogItem(
-                item_id=999999998,
-                name="Demo Running Shoe",
-                category_name="Sports",
-                subcategory="Running",
-                brand="DemoBrand",
-                price=4999.00,
-                margin_pct=35.00,
-                inventory_count=100,
-                quality_score=0.90,
-                business_priority=0.80,
-                source="synthetic_cold",
-                source_id=999999998,
-                is_cold_demo=True,
-            )
-            self._items_cache[999999998] = cold_item
+            for _, row in df.iterrows():
+                pid = int(row.get("index", row.get("product_id", 0)))
+                if pid == 0:
+                    continue
+
+                price = float(row.get("sale_price", row.get("market_price", 299.0)))
+                # Deterministic synthetic business layer based on pid
+                margin = float(15.0 + ((pid * 37) % 35))
+                inventory = int(10 + ((pid * 13) % 180))
+                quality = float(0.60 + (((pid * 7) % 35) / 100.0))
+
+                item_dict = {
+                    "item_id": pid,
+                    "name": str(row.get("product", f"Product #{pid}")),
+                    "category_name": str(row.get(cat_col, "General")),
+                    "subcategory": str(row.get("sub_category", "")),
+                    "brand": str(row.get("brand", "")),
+                    "price": price,
+                    "tags": [str(row.get(cat_col, "General")), str(row.get("brand", ""))],
+                    "is_synthetic_cold_demo": False,
+                }
+                self._items_cache[pid] = item_dict
+                self._biz_cache[pid] = {
+                    "margin_pct": margin,
+                    "inventory_count": inventory,
+                    "quality_score": quality,
+                    "business_priority": 0.50,
+                }
+
+        # Seed Cold Start Demo Entities
+        self._items_cache[999999998] = {
+            "item_id": 999999998,
+            "name": "Demo Organic Herbal Green Tea 100g",
+            "category_name": "Beverages",
+            "subcategory": "Tea",
+            "brand": "Organic Valley",
+            "price": 349.00,
+            "tags": ["organic", "tea", "herbal", "green tea"],
+            "is_synthetic_cold_demo": True,
+        }
+        self._biz_cache[999999998] = {
+            "margin_pct": 35.0,
+            "inventory_count": 120,
+            "quality_score": 0.90,
+            "business_priority": 0.80,
+        }
+
+        self._users_cache[999999999] = {
+            "user_id": 999999999,
+            "selected_categories": ["Beauty & Hygiene", "Beverages"],
+            "is_synthetic_cold_demo": True,
+        }
+
+        # Seed some warm demo users
+        self._users_cache[111016] = {
+            "user_id": 111016,
+            "selected_categories": ["Beauty & Hygiene", "Gourmet & World Food"],
+            "is_synthetic_cold_demo": False,
+        }
 
         self._initialized = True
 
-    def get_item(self, item_id: int) -> Optional[CatalogItem]:
+    def get_item(self, item_id: int) -> Optional[Dict[str, Any]]:
         if not self._initialized:
             self.initialize_from_metadata()
         return self._items_cache.get(item_id)
+
+    def get_business_metadata(self, item_id: int) -> Optional[Dict[str, Any]]:
+        if not self._initialized:
+            self.initialize_from_metadata()
+        return self._biz_cache.get(item_id)
+
+    def get_user(self, user_id: int) -> Optional[Dict[str, Any]]:
+        if not self._initialized:
+            self.initialize_from_metadata()
+        return self._users_cache.get(user_id)
+
+    def add_user(self, user_id: int, categories: List[str], is_cold: bool = True):
+        if not self._initialized:
+            self.initialize_from_metadata()
+        self._users_cache[user_id] = {
+            "user_id": user_id,
+            "selected_categories": categories,
+            "is_synthetic_cold_demo": is_cold,
+        }
+
+    def add_item(self, item_data: Dict[str, Any]):
+        if not self._initialized:
+            self.initialize_from_metadata()
+        pid = item_data["item_id"]
+        self._items_cache[pid] = item_data
+        self._biz_cache[pid] = {
+            "margin_pct": item_data.get("margin_pct", 25.0),
+            "inventory_count": item_data.get("inventory_count", 100),
+            "quality_score": item_data.get("quality_score", 0.80),
+            "business_priority": item_data.get("business_priority", 0.50),
+        }
+
+    def get_all_items(self) -> List[Dict[str, Any]]:
+        if not self._initialized:
+            self.initialize_from_metadata()
+        return list(self._items_cache.values())
+
+    def get_all_users(self) -> List[Dict[str, Any]]:
+        if not self._initialized:
+            self.initialize_from_metadata()
+        return list(self._users_cache.values())
 
     def get_all_categories(self) -> List[str]:
         if not self._initialized:
             self.initialize_from_metadata()
         return self._categories_cache
 
-    def get_items_by_category(self, category_name: str, limit: int = 50) -> List[CatalogItem]:
-        if not self._initialized:
-            self.initialize_from_metadata()
-        matches = [
-            item for item in self._items_cache.values()
-            if item.category_name.lower() == category_name.lower()
-        ]
-        return matches[:limit]
 
-
-catalog = UnifiedCatalog()
+catalog_service = UnifiedCatalog()
+catalog = catalog_service

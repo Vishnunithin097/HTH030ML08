@@ -75,12 +75,10 @@ class FeatureStore:
             self.item_factors = joblib.load(itemf_path)
         if os.path.exists(ue_path):
             self.user_encoder = joblib.load(ue_path)
-            # Create fast O(1) dictionary for user ID mapping
             if hasattr(self.user_encoder, "classes_"):
                 self.user_id_to_idx = {int(uid): idx for idx, uid in enumerate(self.user_encoder.classes_)}
         if os.path.exists(ie_path):
             self.item_encoder = joblib.load(ie_path)
-            # Create fast O(1) dictionary for item ID mapping
             if hasattr(self.item_encoder, "classes_"):
                 self.item_id_to_idx = {int(iid): idx for idx, iid in enumerate(self.item_encoder.classes_)}
 
@@ -102,12 +100,17 @@ class FeatureStore:
             self.tfidf_matrix = sp.load_npz(mat_path)
         if os.path.exists(meta_path):
             self.product_metadata = pd.read_parquet(meta_path)
-            if "product_id" in self.product_metadata.columns:
+            id_col = "index" if "index" in self.product_metadata.columns else "product_id"
+            if id_col in self.product_metadata.columns:
                 self.product_id_to_idx = {
-                    int(pid): idx for idx, pid in enumerate(self.product_metadata["product_id"])
+                    int(pid): idx for idx, pid in enumerate(self.product_metadata[id_col])
                 }
 
         self._bigbasket_loaded = True
+
+    @property
+    def bigbasket_meta(self) -> Optional[pd.DataFrame]:
+        return self.product_metadata
 
     # --- RetailRocket Latent Factor Access ---
     def get_user_factors(self, user_id: int) -> Optional[np.ndarray]:
@@ -126,6 +129,22 @@ class FeatureStore:
         idx = self.item_id_to_idx.get(item_id)
         if idx is not None and idx < len(self.item_factors):
             return self.item_factors[idx]
+        return None
+
+    get_user_vector = get_user_factors
+    get_item_vector = get_item_factors
+
+    def get_raw_item_id_from_encoded(self, idx: int) -> Optional[int]:
+        if self.item_encoder is not None and hasattr(self.item_encoder, "classes_"):
+            if 0 <= idx < len(self.item_encoder.classes_):
+                return int(self.item_encoder.classes_[idx])
+        return None
+
+    def get_bigbasket_product_id(self, idx: int) -> Optional[int]:
+        if self.product_metadata is not None:
+            id_col = "index" if "index" in self.product_metadata.columns else "product_id"
+            if 0 <= idx < len(self.product_metadata):
+                return int(self.product_metadata.iloc[idx][id_col])
         return None
 
     # --- BigBasket Content Vector Access ---
