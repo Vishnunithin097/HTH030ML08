@@ -182,16 +182,17 @@ const CATEGORY_STYLES: Record<string, CategoryStyle> = {
 
 function getCategoryStyle(categoryName?: string, subcategoryName?: string, productName?: string): CategoryStyle {
   const combined = `${categoryName || ''} ${subcategoryName || ''} ${productName || ''}`.toLowerCase();
-  if (combined.includes('beauty') || combined.includes('skin') || combined.includes('hair') || combined.includes('groom') || combined.includes('fragrance') || combined.includes('soap')) return CATEGORY_STYLES.beauty;
-  if (combined.includes('gourmet') || combined.includes('chocolate') || combined.includes('sauce') || combined.includes('spread') || combined.includes('syrup')) return CATEGORY_STYLES.gourmet;
-  if (combined.includes('kitchen') || combined.includes('pet') || combined.includes('cookware') || combined.includes('container') || combined.includes('storage') || combined.includes('bottle')) return CATEGORY_STYLES.kitchen;
-  if (combined.includes('clean') || combined.includes('detergent') || combined.includes('scrub') || combined.includes('wipe')) return CATEGORY_STYLES.cleaning;
-  if (combined.includes('snack') || combined.includes('biscuit') || combined.includes('namkeen') || combined.includes('candy') || combined.includes('chips') || combined.includes('halwa') || combined.includes('sweet')) return CATEGORY_STYLES.snack;
-  if (combined.includes('grain') || combined.includes('oil') || combined.includes('masala') || combined.includes('spice') || combined.includes('rice') || combined.includes('atta') || combined.includes('dal')) return CATEGORY_STYLES.grain;
-  if (combined.includes('bakery') || combined.includes('dairy') || combined.includes('bread') || combined.includes('milk') || combined.includes('butter') || combined.includes('cheese')) return CATEGORY_STYLES.bakery;
-  if (combined.includes('beverage') || combined.includes('tea') || combined.includes('coffee') || combined.includes('drink') || combined.includes('juice')) return CATEGORY_STYLES.beverage;
-  if (combined.includes('baby') || combined.includes('diaper')) return CATEGORY_STYLES.baby;
-  if (combined.includes('fruit') || combined.includes('veg') || combined.includes('apple') || combined.includes('onion') || combined.includes('potato')) return CATEGORY_STYLES.fruit;
+  // Match BigBasket's actual category names
+  if (combined.includes('beauty') || combined.includes('hygiene') || combined.includes('skin') || combined.includes('hair') || combined.includes('groom') || combined.includes('fragrance') || combined.includes('soap') || combined.includes('bath')) return CATEGORY_STYLES.beauty;
+  if (combined.includes('gourmet') || combined.includes('world food') || combined.includes('chocolate') || combined.includes('sauce') || combined.includes('spread') || combined.includes('syrup')) return CATEGORY_STYLES.gourmet;
+  if (combined.includes('kitchen') || combined.includes('garden') || combined.includes('pet') || combined.includes('cookware') || combined.includes('container') || combined.includes('storage') || combined.includes('bottle')) return CATEGORY_STYLES.kitchen;
+  if (combined.includes('clean') || combined.includes('household') || combined.includes('detergent') || combined.includes('scrub') || combined.includes('wipe') || combined.includes('pooja')) return CATEGORY_STYLES.cleaning;
+  if (combined.includes('snack') || combined.includes('branded food') || combined.includes('biscuit') || combined.includes('namkeen') || combined.includes('candy') || combined.includes('chips') || combined.includes('halwa') || combined.includes('sweet') || combined.includes('cookie') || combined.includes('ready to cook') || combined.includes('ready to eat')) return CATEGORY_STYLES.snack;
+  if (combined.includes('foodgrain') || combined.includes('grain') || combined.includes('oil') || combined.includes('masala') || combined.includes('spice') || combined.includes('rice') || combined.includes('atta') || combined.includes('dal') || combined.includes('flour')) return CATEGORY_STYLES.grain;
+  if (combined.includes('bakery') || combined.includes('cakes') || combined.includes('dairy') || combined.includes('bread') || combined.includes('milk') || combined.includes('butter') || combined.includes('cheese') || combined.includes('egg')) return CATEGORY_STYLES.bakery;
+  if (combined.includes('beverage') || combined.includes('tea') || combined.includes('coffee') || combined.includes('drink') || combined.includes('juice') || combined.includes('water') || combined.includes('soda')) return CATEGORY_STYLES.beverage;
+  if (combined.includes('baby') || combined.includes('diaper') || combined.includes('infant')) return CATEGORY_STYLES.baby;
+  if (combined.includes('fruit') || combined.includes('vegetable') || combined.includes('veg') || combined.includes('apple') || combined.includes('onion') || combined.includes('potato') || combined.includes('fresh')) return CATEGORY_STYLES.fruit;
   return CATEGORY_STYLES.general;
 }
 
@@ -213,7 +214,14 @@ export const ProductImage: React.FC<ProductImageProps> = ({
   const altText = brand ? `${brand} ${productName}`.trim() : productName;
   const style = getCategoryStyle(category, subcategory, productName);
 
-  const hasExternalImage = !hasError && imageUrl && (imageUrl.startsWith('http://') || imageUrl.startsWith('https://') || imageUrl.startsWith('data:image/'));
+  // Accept absolute URLs AND relative paths (e.g. /product-images/fallback/*.svg served by Vite)
+  const hasExternalImage = !hasError && imageUrl && (
+    imageUrl.startsWith('http://') ||
+    imageUrl.startsWith('https://') ||
+    imageUrl.startsWith('data:image/') ||
+    imageUrl.startsWith('/product-images/') ||
+    imageUrl.startsWith('/images/')
+  );
 
   return (
     <div
