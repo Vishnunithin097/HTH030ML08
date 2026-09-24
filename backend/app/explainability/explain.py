@@ -32,8 +32,14 @@ class ExplainabilityEngine:
 
         # 1. Cold-Start Explanations
         if is_cold:
-            if user_category_preferences and any(c.lower() in category.lower() for c in user_category_preferences):
+            matched_cats = [
+                c for c in (user_category_preferences or [])
+                if c.lower() in category.lower() or category.lower() in c.lower() or c.lower() in (item.get("subcategory") or "").lower()
+            ]
+            if matched_cats:
                 return f"Recommended matching your selected interest in '{category}' (Cold-Start Content Engine)."
+            elif user_category_preferences:
+                return f"Recommended based on your declared onboarding interests and product content similarity."
             return f"Top-rated introductory pick in '{category}' based on catalog content signals (Cold-Start Mode)."
 
         # 2. Collaborative-Dominant Explanations

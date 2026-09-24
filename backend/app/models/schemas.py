@@ -22,6 +22,8 @@ class UserResponse(UserBase):
     signup_date: Optional[datetime] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+    is_cold_start: bool = True
+    interaction_count: int = 0
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -161,6 +163,7 @@ class RecommendationResponse(BaseModel):
     cold_start: bool
     cold_start_type: Optional[str] = None
     interaction_count: int
+    selected_categories: List[str] = Field(default_factory=list)
     total_recommendations: int
     guardrail_health: GuardrailHealthSummary
     gmv_projection: GMVProjectionSummary

@@ -3,6 +3,8 @@ export interface User {
   signup_date?: string;
   selected_categories: string[];
   is_synthetic_cold_demo: boolean;
+  is_cold_start?: boolean;
+  interaction_count?: number;
 }
 
 export interface CatalogItemResponse {
@@ -79,6 +81,7 @@ export interface RecommendationResponse {
   cold_start: boolean;
   cold_start_type?: string | null;
   interaction_count: number;
+  selected_categories?: string[];
   total_recommendations: number;
   guardrail_health: GuardrailHealthSummary;
   gmv_projection: GMVProjectionSummary;

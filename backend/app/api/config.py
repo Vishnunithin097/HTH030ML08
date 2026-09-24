@@ -30,7 +30,7 @@ async def get_guardrail_config(db: AsyncSession = Depends(get_async_db)):
     """
     try:
         stmt = select(GuardrailConfig).order_by(GuardrailConfig.config_id.asc()).limit(1)
-        result = await db.execute(stmt)
+        result = db.execute(stmt)
         config = result.scalar_one_or_none()
     except Exception as e:
         import logging
@@ -99,7 +99,7 @@ async def update_guardrail_config(
     config = None
     try:
         stmt = select(GuardrailConfig).order_by(GuardrailConfig.config_id.asc()).limit(1)
-        result = await db.execute(stmt)
+        result = db.execute(stmt)
         config = result.scalar_one_or_none()
 
         if not config:
@@ -111,8 +111,8 @@ async def update_guardrail_config(
                 setattr(config, field, val)
 
         config.updated_at = datetime.utcnow()
-        await db.commit()
-        await db.refresh(config)
+        db.commit()
+        db.refresh(config)
     except Exception as e:
         import logging
         logging.getLogger(__name__).warning(f"Could not persist guardrail config to database (in-memory policy active): {e}")

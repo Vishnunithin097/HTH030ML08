@@ -24,7 +24,7 @@ async def login(payload: AdminLogin, db: AsyncSession = Depends(get_async_db)):
     admin = None
     try:
         stmt = select(Admin).where(Admin.username == payload.username)
-        result = await db.execute(stmt)
+        result = db.execute(stmt)
         admin = result.scalar_one_or_none()
     except Exception as e:
         import logging

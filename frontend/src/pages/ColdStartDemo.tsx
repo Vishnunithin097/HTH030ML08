@@ -58,8 +58,20 @@ export const ColdStartDemo: React.FC = () => {
       const res = await apiClient.post('/demo/cold-start/user', {
         selected_categories: selectedCats,
       });
-      setCreatedUser(res.data);
-      setNotification(`Created cold-start shopper profile User #${res.data.user_id}`);
+      const userData = res.data;
+      setCreatedUser(userData);
+      
+      // Authoritatively persist active session for main recommendations dashboard
+      localStorage.setItem('active_shopper_id', userData.user_id.toString());
+      localStorage.setItem('active_shopper_categories', JSON.stringify(userData.selected_categories || selectedCats));
+      localStorage.setItem('active_shopper_is_cold', 'true');
+
+      setNotification(`Created cold-start shopper profile User #${userData.user_id}`);
+      
+      // Automatically route to recommendations dashboard with the new cold shopper
+      setTimeout(() => {
+        navigate(`/?user_id=${userData.user_id}`);
+      }, 400);
     } catch (err: any) {
       alert(err.response?.data?.detail || 'Failed to create cold user.');
     } finally {

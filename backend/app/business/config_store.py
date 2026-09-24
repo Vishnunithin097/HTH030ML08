@@ -16,7 +16,7 @@ class GuardrailConfigStore:
 
     async def get_active_config(self, db: AsyncSession) -> GuardrailConfig:
         stmt = select(GuardrailConfig).order_by(GuardrailConfig.config_id.asc()).limit(1)
-        result = await db.execute(stmt)
+        result = db.execute(stmt)
         config = result.scalar_one_or_none()
         if not config:
             config = GuardrailConfig()

@@ -66,21 +66,26 @@ class ColdStartEngine:
             # Check direct category match
             item_cat = str(_get_val(item, "category_name") or "").lower().strip()
             item_sub = str(_get_val(item, "subcategory") or "").lower().strip()
-            has_cat_match = any(cat in item_cat or cat in item_sub for cat in normalized_cats)
+            item_name = str(_get_val(item, "name") or "").lower().strip()
+            has_cat_match = any(
+                cat in item_cat or item_cat in cat or cat in item_sub or cat in item_name
+                for cat in normalized_cats
+            )
 
-            # Compute content semantic score
+            # Compute content semantic score using BigBasket ID
+            bb_id = _get_val(item, "bigbasket_product_id", item_id)
             content_score = 0.0
-            if query_vec is not None:
-                sim = content_recommender.predict_score(query_vec, item_id)
+            if query_vec is not None and bb_id is not None:
+                sim = content_recommender.predict_score(query_vec, bb_id)
                 content_score = sim if sim is not None else 0.0
 
             # Direct category alignment boost
-            category_boost = 0.35 if has_cat_match else 0.0
+            category_boost = 0.40 if has_cat_match else 0.05
             # Quality & baseline rating score (0.0 to 0.15)
             quality_factor = float(_get_val(item, "quality_score") or 0.5) * 0.15
 
             # Total relevance in [0, 1]
-            relevance_score = float(np.clip(content_score * 0.5 + category_boost + quality_factor, 0.0, 1.0))
+            relevance_score = float(np.clip(content_score * 0.45 + category_boost + quality_factor, 0.0, 1.0))
 
             scored_candidates.append({
                 "item_id": item_id,

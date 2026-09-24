@@ -45,34 +45,41 @@ async def get_recommendations(
     policy = get_current_guardrail_policy()
 
     # 1. Fetch Shopper Profile & Interacted Items
-    selected_categories = ["General"]
+    selected_categories: List[str] = []
     interaction_count = 0
-    interacted_ids = []
+    interacted_ids: List[int] = []
     is_cold_shopper = False
     cold_type = None
 
     try:
         stmt = select(User).where(User.user_id == user_id)
-        res = await db.execute(stmt)
+        res = db.execute(stmt)
         user_record = res.scalar_one_or_none()
         if user_record:
-            selected_categories = user_record.selected_categories or ["General"]
+            selected_categories = list(user_record.selected_categories or [])
             if user_record.is_synthetic_cold_demo:
                 is_cold_shopper = True
                 cold_type = "synthetic_cold_demo_shopper"
 
         stmt_int = select(Interaction.item_id).where(Interaction.user_id == user_id)
-        res_int = await db.execute(stmt_int)
+        res_int = db.execute(stmt_int)
         interacted_ids = [r[0] for r in res_int.fetchall()]
+        interaction_count = len(interacted_ids)
     except Exception as e:
         import logging
         logging.getLogger(__name__).warning(f"Database user lookup fallback for #{user_id}: {e}")
+
+    # Fallback to catalog / in-memory demo user store if not found in DB
+    if not selected_categories:
         cat_user = catalog.get_user(user_id)
         if cat_user:
-            selected_categories = cat_user.get("selected_categories") or ["General"]
-            is_cold_shopper = cat_user.get("is_synthetic_cold_demo", False)
-            if is_cold_shopper:
+            selected_categories = list(cat_user.get("selected_categories") or [])
+            if cat_user.get("is_synthetic_cold_demo", False):
+                is_cold_shopper = True
                 cold_type = "synthetic_cold_demo_shopper"
+
+    if not selected_categories:
+        selected_categories = ["General"]
 
     # Check if user is unseen/cold in the recommender engine
     if not is_cold_shopper:
@@ -85,12 +92,21 @@ async def get_recommendations(
     # Filter candidates by category preference if cold shopper, else broader candidate pool
     if is_cold_shopper and selected_categories:
         candidate_pool = []
+        seen_pids = set()
         for cat in selected_categories:
-            candidate_pool.extend(catalog.get_items_by_category(cat, limit=30))
-        if not candidate_pool:
-            candidate_pool = list(catalog._items_cache.values())[:100]
+            for it in catalog.get_items_by_category(cat, limit=60):
+                pid = it.get("item_id") if isinstance(it, dict) else getattr(it, "item_id", None)
+                if pid not in seen_pids:
+                    seen_pids.add(pid)
+                    candidate_pool.append(it)
+        if len(candidate_pool) < 60:
+            for it in list(catalog._items_cache.values())[:150]:
+                pid = it.get("item_id") if isinstance(it, dict) else getattr(it, "item_id", None)
+                if pid not in seen_pids:
+                    seen_pids.add(pid)
+                    candidate_pool.append(it)
     else:
-        candidate_pool = list(catalog._items_cache.values())[:150]
+        candidate_pool = list(catalog._items_cache.values())[:200]
 
     # 3. Generate ML Candidate Scores (Layer 1)
     raw_candidates = hybrid_recommender.recommend(
@@ -99,7 +115,7 @@ async def get_recommendations(
         interacted_item_ids=interacted_ids,
         selected_categories=selected_categories,
         candidate_items=candidate_pool,
-        limit=max(limit * 2, 20),
+        limit=max(limit * 2, 24),
     )
 
     # 4. Apply Business Guardrails & Re-Ranking (Layer 2)
@@ -163,7 +179,7 @@ async def get_recommendations(
     try:
         logs_to_insert = [
             RecommendationLog(
-                request_id=uuid.UUID(request_id),
+                request_id=uuid.uuid4(),
                 user_id=user_id,
                 mode=mode,
                 item_id=r.item_id,
@@ -180,7 +196,7 @@ async def get_recommendations(
             for r in response_items
         ]
         db.add_all(logs_to_insert)
-        await db.commit()
+        db.commit()
     except Exception as e:
         # Non-blocking logging warning
         import logging
@@ -193,6 +209,7 @@ async def get_recommendations(
         cold_start=is_cold_shopper,
         cold_start_type=cold_type,
         interaction_count=interaction_count,
+        selected_categories=selected_categories,
         total_recommendations=len(response_items),
         guardrail_health=GuardrailHealthSummary(
             mode=health_diag.get("mode", mode),

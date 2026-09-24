@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { RecommendationMode, RecommendationItem, User, CatalogItemResponse, RecommendationResponse } from '../types';
 import { ModeToggle } from '../components/ModeToggle';
 import { RecommendationList } from '../components/RecommendationList';
@@ -6,10 +7,20 @@ import { WhyRecommendedModal } from '../components/WhyRecommendedModal';
 import { ScoreBreakdownChart } from '../components/ScoreBreakdownChart';
 import { ProductImage } from '../components/ProductImage';
 import { apiClient } from '../api/client';
-import { UserCheck, Sparkles, Search, ShieldCheck, CheckCircle2, TrendingUp, RefreshCw, X, ShoppingBag } from 'lucide-react';
+import { UserCheck, Sparkles, Search, ShieldCheck, CheckCircle2, TrendingUp, RefreshCw, X, ShoppingBag, Tag } from 'lucide-react';
 
 export const Dashboard: React.FC = () => {
-  const [selectedUserId, setSelectedUserId] = useState<number>(111016);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlUserId = searchParams.get('user_id');
+  const storedUserId = localStorage.getItem('active_shopper_id');
+
+  const initialUserId = urlUserId
+    ? Number(urlUserId)
+    : storedUserId
+    ? Number(storedUserId)
+    : 111016;
+
+  const [selectedUserId, setSelectedUserId] = useState<number>(initialUserId);
   const [users, setUsers] = useState<User[]>([]);
   const [mode, setMode] = useState<RecommendationMode>('business_aware');
   const [activeModalItem, setActiveModalItem] = useState<RecommendationItem | null>(null);
@@ -30,16 +41,22 @@ export const Dashboard: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    if (urlUserId && Number(urlUserId) !== selectedUserId) {
+      setSelectedUserId(Number(urlUserId));
+    }
+  }, [urlUserId]);
+
+  useEffect(() => {
+    localStorage.setItem('active_shopper_id', selectedUserId.toString());
     fetchRecommendations();
   }, [selectedUserId, mode]);
 
   const fetchUsers = async () => {
     try {
-      const res = await apiClient.get('/users?limit=15');
+      const res = await apiClient.get('/users?limit=30');
       setUsers(res.data);
-      if (res.data.length > 0 && selectedUserId === 111016) {
-        const has111016 = res.data.some((u: User) => u.user_id === 111016);
-        if (!has111016) setSelectedUserId(res.data[0].user_id);
+      if (res.data.length > 0 && !selectedUserId) {
+        setSelectedUserId(res.data[0].user_id);
       }
     } catch (e) {
       console.error('Failed to fetch user list:', e);
@@ -81,6 +98,11 @@ export const Dashboard: React.FC = () => {
 
   const currentUser = users.find((u) => u.user_id === selectedUserId);
   const isColdUser = selectedUserId === 999999999 || currentUser?.is_synthetic_cold_demo || recoResponse?.cold_start;
+  
+  // Authoritative selected interests from API or active user profile
+  const activeInterests: string[] = recoResponse?.selected_categories && recoResponse.selected_categories.length > 0
+    ? recoResponse.selected_categories
+    : (currentUser?.selected_categories || []);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -94,17 +116,21 @@ export const Dashboard: React.FC = () => {
             <span className="font-medium text-slate-600">Shopper:</span>
             <select
               value={selectedUserId}
-              onChange={(e) => setSelectedUserId(Number(e.target.value))}
+              onChange={(e) => {
+                const newId = Number(e.target.value);
+                setSelectedUserId(newId);
+                setSearchParams({ user_id: newId.toString() });
+              }}
               className="bg-transparent font-semibold text-slate-900 focus:outline-none cursor-pointer pr-1"
             >
-              <option value={999999999}>Shopper #999999999 (Cold-Start Demo)</option>
-              {users
-                .filter((u) => u.user_id !== 999999999)
-                .map((u) => (
-                  <option key={u.user_id} value={u.user_id}>
-                    Shopper #{u.user_id} {u.is_synthetic_cold_demo ? '(Cold Profile)' : `(${u.selected_categories?.length ? u.selected_categories[0] : 'Warm Shopper'})`}
-                  </option>
-                ))}
+              {users.map((u) => (
+                <option key={u.user_id} value={u.user_id}>
+                  Shopper #{u.user_id} {u.is_synthetic_cold_demo ? `(Cold Start · ${u.selected_categories?.join(', ') || 'Zero History'})` : `(Warm Profile · ${u.selected_categories?.length ? u.selected_categories.join(', ') : 'Catalog'})`}
+                </option>
+              ))}
+              {!users.some((u) => u.user_id === selectedUserId) && (
+                <option value={selectedUserId}>Shopper #{selectedUserId} (Active Persona)</option>
+              )}
             </select>
           </div>
 
@@ -158,6 +184,25 @@ export const Dashboard: React.FC = () => {
               ? 'Zero historical transactions. Candidates routed via stated category preferences and TF-IDF content similarity.'
               : 'Collaborative SVD latent representations fused with BigBasket TF-IDF content matching.'}
           </p>
+          
+          {/* Interests Badges */}
+          <div className="flex flex-wrap items-center gap-1.5 mt-2.5 pt-2 border-t border-slate-100">
+            <span className="text-[11px] font-medium text-slate-500 mr-1 flex items-center gap-1">
+              <Tag className="w-3 h-3 text-slate-400" /> Interests:
+            </span>
+            {activeInterests.length > 0 ? (
+              activeInterests.map((cat, idx) => (
+                <span
+                  key={idx}
+                  className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-800 border border-slate-200 shadow-2xs"
+                >
+                  {cat}
+                </span>
+              ))
+            ) : (
+              <span className="text-[11px] text-slate-400 italic">General Catalog</span>
+            )}
+          </div>
         </div>
 
         <div className="text-left sm:text-right shrink-0">
