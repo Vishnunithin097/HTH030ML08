@@ -64,6 +64,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           productName={item.name || `Product #${item.item_id}`}
           brand={item.brand}
           category={item.category_name}
+          subcategory={item.subcategory}
           imageUrl={item.image_url}
           imageStatus={item.image_status}
           imageSource={item.image_source}
