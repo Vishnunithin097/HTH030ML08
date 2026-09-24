@@ -33,8 +33,12 @@ class ImageProvider:
 
     def _load_manifest(self):
         candidate_paths = [
+            ROOT_DIR / "image_dataset" / "image_manifest.json",
+            ROOT_DIR / "imagedataset" / "image_manifest.json",
             ROOT_DIR / "data" / "product_image_manifest.json",
             ROOT_DIR / "data" / "image_manifest.json",
+            Path("image_dataset/image_manifest.json"),
+            Path("imagedataset/image_manifest.json"),
             Path("data/product_image_manifest.json"),
             Path("data/image_manifest.json"),
         ]
@@ -78,15 +82,19 @@ class ImageProvider:
 
         # Tier 2: Local Verified Product Image Check
         local_verified_candidates = [
-            ROOT_DIR / "frontend" / "public" / "product-images" / "verified" / f"{product_id}.jpg",
-            ROOT_DIR / "frontend" / "public" / "product-images" / "verified" / f"{product_id}.png",
-            ROOT_DIR / "backend" / "static" / "product-images" / "verified" / f"{product_id}.jpg",
-            ROOT_DIR / "backend" / "static" / "images" / f"{product_id}.jpg",
+            (ROOT_DIR / "image_dataset" / "images" / f"{product_id}.jpg", f"/image_dataset/images/{product_id}.jpg"),
+            (ROOT_DIR / "image_dataset" / "images" / f"{product_id}.png", f"/image_dataset/images/{product_id}.png"),
+            (ROOT_DIR / "imagedataset" / "images" / f"{product_id}.jpg", f"/imagedataset/images/{product_id}.jpg"),
+            (ROOT_DIR / "imagedataset" / "images" / f"{product_id}.png", f"/imagedataset/images/{product_id}.png"),
+            (ROOT_DIR / "frontend" / "public" / "product-images" / "verified" / f"{product_id}.jpg", f"/product-images/verified/{product_id}.jpg"),
+            (ROOT_DIR / "frontend" / "public" / "product-images" / "verified" / f"{product_id}.png", f"/product-images/verified/{product_id}.png"),
+            (ROOT_DIR / "backend" / "static" / "product-images" / "verified" / f"{product_id}.jpg", f"/product-images/verified/{product_id}.jpg"),
+            (ROOT_DIR / "backend" / "static" / "images" / f"{product_id}.jpg", f"/images/{product_id}.jpg"),
         ]
-        for l_path in local_verified_candidates:
+        for l_path, rel_url in local_verified_candidates:
             if l_path.exists():
                 return {
-                    "image_url": f"/product-images/verified/{product_id}.jpg",
+                    "image_url": rel_url,
                     "image_source": "local_asset",
                     "image_status": "local",
                 }
