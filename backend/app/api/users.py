@@ -61,8 +61,9 @@ async def list_users(
         users = res.scalars().all()
         if users:
             return users
-    except Exception:
-        pass
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"Database user query failed, serving cached demo users: {e}")
 
     # Fallback to demo users
     filtered = _cached_demo_users
@@ -100,7 +101,8 @@ async def create_cold_start_user(
         )
         db.add(db_user)
         await db.commit()
-    except Exception:
-        pass
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"Database write for demo user #{user_id} failed (in-memory only): {e}")
 
     return new_user

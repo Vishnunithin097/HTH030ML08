@@ -45,9 +45,18 @@ class FeatureStore:
         return cls._instance
 
     def _find_path(self, *relative_paths: str) -> str:
-        for p in relative_paths:
-            if os.path.exists(p):
-                return p
+        base_candidates = [
+            "",
+            os.path.join(os.path.dirname(__file__), "..", "..", ".."),
+            os.path.join(os.path.dirname(__file__), "..", ".."),
+            os.path.join(os.path.dirname(__file__), ".."),
+            os.getcwd(),
+        ]
+        for rel in relative_paths:
+            for base in base_candidates:
+                full = os.path.normpath(os.path.join(base, rel)) if base else rel
+                if os.path.exists(full):
+                    return full
         return relative_paths[0]
 
     def initialize_all(self):

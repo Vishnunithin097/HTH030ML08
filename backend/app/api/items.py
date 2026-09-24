@@ -31,31 +31,23 @@ async def list_items(
     Retrieves catalog items with optional text search and category filtering.
     """
     catalog.initialize_from_metadata()
-    all_items = list(catalog._items_cache.values())
-
-    filtered = all_items
-    if category:
-        cat_lower = category.lower().strip()
-        filtered = [i for i in filtered if cat_lower in str(_get_val(i, "category_name") or "").lower()]
-
-    if search:
-        search_lower = search.lower().strip()
-        filtered = [
-            i for i in filtered
-            if search_lower in str(_get_val(i, "name") or "").lower()
-            or search_lower in str(_get_val(i, "brand") or "").lower()
-        ]
-
-    paged = filtered[offset : offset + limit]
+    paged = catalog.search_items(search=search, category=category, offset=offset, limit=limit)
 
     return [
         ItemResponse(
             item_id=_get_val(i, "item_id"),
+            bigbasket_product_id=_get_val(i, "bigbasket_product_id"),
+            retailrocket_item_id=_get_val(i, "retailrocket_item_id"),
             name=_get_val(i, "name"),
             category_name=_get_val(i, "category_name"),
             subcategory=_get_val(i, "subcategory"),
             brand=_get_val(i, "brand"),
+            description=_get_val(i, "description"),
             price=float(_get_val(i, "price") or 299.0),
+            rating=float(_get_val(i, "rating") or 4.0),
+            image_url=_get_val(i, "image_url"),
+            image_source=_get_val(i, "image_source", "fallback"),
+            image_status=_get_val(i, "image_status", "fallback"),
             margin_pct=float(_get_val(i, "margin_pct") or 20.0),
             inventory_count=int(_get_val(i, "inventory_count") or 100),
             quality_score=float(_get_val(i, "quality_score") or 0.8),
@@ -83,6 +75,7 @@ async def create_cold_start_item(
         category_name=payload.category_name,
         subcategory=payload.subcategory,
         brand=payload.brand,
+        description=payload.description,
         price=payload.price,
         margin_pct=payload.margin_pct,
         inventory_count=payload.inventory_count,
@@ -93,20 +86,25 @@ async def create_cold_start_item(
         is_cold_demo=True,
     )
 
-    # Register in in-memory catalog
-    catalog._items_cache[item_id] = new_catalog_item
+    # Register in unified catalog abstraction
+    catalog.add_item(new_catalog_item.to_dict())
 
     return ItemResponse(
         item_id=item_id,
+        bigbasket_product_id=None,
+        retailrocket_item_id=None,
         name=payload.name,
         category_name=payload.category_name,
         subcategory=payload.subcategory,
         brand=payload.brand,
         description=payload.description,
         price=payload.price,
+        image_url=new_catalog_item.image_url,
+        image_source=new_catalog_item.image_source,
+        image_status=new_catalog_item.image_status,
         margin_pct=payload.margin_pct,
         inventory_count=payload.inventory_count,
         quality_score=payload.quality_score,
-        tags=payload.tags,
+        tags=payload.tags or [payload.category_name.lower()],
         is_synthetic_cold_demo=True,
     )

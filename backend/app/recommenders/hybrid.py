@@ -86,13 +86,19 @@ class HybridRecommender:
                 scored_candidates.append(cold_scored)
                 continue
 
-            # Compute Collaborative Score
-            cf_score = collaborative_recommender.predict_score(user_id, item_id)
+            # Compute Collaborative Score (only if user & item have verified RetailRocket representations)
+            cf_score = None
+            rr_id = _get_val(item, "retailrocket_item_id")
+            if rr_id is not None:
+                cf_score = collaborative_recommender.predict_score(user_id, rr_id)
+            elif collaborative_recommender.is_item_available(item_id) and collaborative_recommender.is_user_available(user_id):
+                cf_score = collaborative_recommender.predict_score(user_id, item_id)
 
-            # Compute Content Score
+            # Compute Content Score (BigBasket TF-IDF space)
             content_score = None
-            if user_profile_vec is not None:
-                content_score = content_recommender.predict_score(user_profile_vec, item_id)
+            bb_id = _get_val(item, "bigbasket_product_id", item_id)
+            if user_profile_vec is not None and bb_id is not None:
+                content_score = content_recommender.predict_score(user_profile_vec, bb_id)
 
             # Determine fusion mode & calculate relevance
             if cf_score is not None and content_score is not None:
@@ -103,19 +109,26 @@ class HybridRecommender:
                 source = "collaborative_only"
             elif content_score is not None:
                 relevance = content_score
-                source = "content_only"
+                source = "tfidf_content_only"
             else:
                 # Baseline category / rating heuristic for unmapped items
                 relevance = float(_get_val(item, "quality_score") or 0.5) * 0.4
-                source = "catalog_baseline"
+                source = "catalog_fallback"
 
             scored_candidates.append({
                 "item_id": item_id,
+                "bigbasket_product_id": bb_id,
+                "retailrocket_item_id": rr_id,
                 "name": _get_val(item, "name"),
                 "category_name": _get_val(item, "category_name"),
                 "subcategory": _get_val(item, "subcategory"),
                 "brand": _get_val(item, "brand"),
+                "description": _get_val(item, "description"),
                 "price": _get_val(item, "price", 299.0),
+                "rating": _get_val(item, "rating", 4.0),
+                "image_url": _get_val(item, "image_url"),
+                "image_source": _get_val(item, "image_source", "fallback"),
+                "image_status": _get_val(item, "image_status", "fallback"),
                 "margin_pct": _get_val(item, "margin_pct", 20.0),
                 "inventory_count": _get_val(item, "inventory_count", 100),
                 "quality_score": _get_val(item, "quality_score", 0.7),

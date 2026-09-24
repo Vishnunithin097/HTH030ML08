@@ -7,12 +7,17 @@ export interface User {
 
 export interface CatalogItemResponse {
   item_id: number;
+  bigbasket_product_id?: number | null;
+  retailrocket_item_id?: number | null;
   name: string;
   category_name: string;
   subcategory?: string;
   brand?: string;
   description?: string;
   price: number;
+  image_url?: string;
+  image_source?: string;
+  image_status?: string;
   margin_pct?: number;
   inventory_count?: number;
   quality_score?: number;
@@ -22,12 +27,17 @@ export interface CatalogItemResponse {
 
 export interface RecommendationItem {
   item_id: number;
+  bigbasket_product_id?: number | null;
+  retailrocket_item_id?: number | null;
   name?: string;
   category_name?: string;
   subcategory?: string;
   brand?: string;
+  description?: string;
   price?: number;
   image_url?: string;
+  image_source?: string;
+  image_status?: string;
   rating?: number;
   margin_pct?: number;
   inventory_count?: number;

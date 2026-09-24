@@ -46,6 +46,8 @@ class BusinessMetadataResponse(BusinessMetadataBase):
 # --- Item Schemas ---
 class ItemBase(BaseModel):
     item_id: int
+    bigbasket_product_id: Optional[int] = None
+    retailrocket_item_id: Optional[int] = None
     name: Optional[str] = None
     category_id: Optional[int] = None
     category_name: Optional[str] = None
@@ -55,6 +57,8 @@ class ItemBase(BaseModel):
     price: Optional[float] = None
     rating: Optional[float] = None
     image_url: Optional[str] = None
+    image_source: Optional[str] = "fallback"
+    image_status: Optional[str] = "fallback"
     tags: List[str] = Field(default_factory=list)
     is_synthetic_cold_demo: bool = False
 
@@ -105,12 +109,17 @@ class GuardrailConfigResponse(GuardrailConfigBase):
 # --- Recommendation Schemas ---
 class RecommendationItem(BaseModel):
     item_id: int
+    bigbasket_product_id: Optional[int] = None
+    retailrocket_item_id: Optional[int] = None
     name: Optional[str] = None
     category_name: Optional[str] = None
     subcategory: Optional[str] = None
     brand: Optional[str] = None
+    description: Optional[str] = None
     price: Optional[float] = None
     image_url: Optional[str] = None
+    image_source: Optional[str] = "fallback"
+    image_status: Optional[str] = "fallback"
     rating: Optional[float] = None
     margin_pct: Optional[float] = None
     inventory_count: Optional[int] = None

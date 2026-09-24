@@ -166,10 +166,38 @@ npm run dev
 
 ---
 
-## 🧪 Comprehensive Verification Suite
+## 🧪 Verification & Acceptance Suites
 
-Run the full end-to-end backend test suite:
+### 1. Phase 1 Production Hardening & Model Integration Suite (20 Scenarios)
+Validates model dimensions, SVD/TF-IDF factor alignment, cross-dataset ID separation, image fallbacks, business guardrail isolation, and health readiness:
+```bash
+python backend/scripts/test_phase1.py
+```
+*(All 20/20 verification scenarios pass 100%).*
+
+### 2. End-to-End API, Recommendation & Guardrail Test Suite
 ```bash
 python backend/scripts/test_phase4.py
 ```
-*(All 17 API & recommendation tests pass 100%).*
+*(All 17 API and recommendation tests pass 100%).*
+
+---
+
+## 🏛️ Data Architecture & Source Separation
+
+### 1. Dataset Independence
+RetailRocket and BigBasket are strictly separate source spaces:
+* **RetailRocket**: Latent SVD user/item factor space (56,987 items, 22,141 users, 100 latent components).
+* **BigBasket**: Semantic TF-IDF feature space (23,541 catalog items, 31,138 vocabulary tokens).
+* Unified catalog items maintain independent nullable fields: `bigbasket_product_id` and `retailrocket_item_id`. No cross-dataset ID collision is ever assumed.
+
+### 2. Product Image Foundation
+Deterministic waterfall resolution via `ImageProvider`:
+1. Verified catalog URL
+2. Configured manifest (`data/image_manifest.json`)
+3. Local static asset (`backend/static/images/{id}.jpg`)
+4. Deterministic category-tailored aesthetic SVG data URI (zero broken images).
+
+### 3. Business Guardrail Metadata
+Synthetic business attributes (margins 15–50%, inventory levels 10–200, quality scores 0.6–0.95) are layered cleanly atop ML candidate generation without modifying underlying SVD/TF-IDF representations.
+

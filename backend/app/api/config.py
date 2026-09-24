@@ -32,7 +32,9 @@ async def get_guardrail_config(db: AsyncSession = Depends(get_async_db)):
         stmt = select(GuardrailConfig).order_by(GuardrailConfig.config_id.asc()).limit(1)
         result = await db.execute(stmt)
         config = result.scalar_one_or_none()
-    except Exception:
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"Guardrail config db fetch fallback to in-memory: {e}")
         config = None
 
     if not config:
@@ -111,8 +113,9 @@ async def update_guardrail_config(
         config.updated_at = datetime.utcnow()
         await db.commit()
         await db.refresh(config)
-    except Exception:
-        pass
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"Could not persist guardrail config to database (in-memory policy active): {e}")
 
     return GuardrailConfigResponse(
         config_id=config.config_id if config else 1,

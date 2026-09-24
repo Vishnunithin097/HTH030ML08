@@ -64,9 +64,15 @@ async def get_recommendations(
         stmt_int = select(Interaction.item_id).where(Interaction.user_id == user_id)
         res_int = await db.execute(stmt_int)
         interacted_ids = [r[0] for r in res_int.fetchall()]
-        interaction_count = len(interacted_ids)
-    except Exception:
-        pass
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"Database user lookup fallback for #{user_id}: {e}")
+        cat_user = catalog.get_user(user_id)
+        if cat_user:
+            selected_categories = cat_user.get("selected_categories") or ["General"]
+            is_cold_shopper = cat_user.get("is_synthetic_cold_demo", False)
+            if is_cold_shopper:
+                cold_type = "synthetic_cold_demo_shopper"
 
     # Check if user is unseen/cold in the recommender engine
     if not is_cold_shopper:
@@ -116,12 +122,17 @@ async def get_recommendations(
 
         response_items.append(RecommendationItem(
             item_id=item["item_id"],
+            bigbasket_product_id=item.get("bigbasket_product_id"),
+            retailrocket_item_id=item.get("retailrocket_item_id"),
             name=item.get("name"),
             category_name=item.get("category_name"),
             subcategory=item.get("subcategory"),
             brand=item.get("brand"),
+            description=item.get("description"),
             price=item.get("price"),
-            image_url=item.get("image_url", "https://via.placeholder.com/300x300?text=Product"),
+            image_url=item.get("image_url"),
+            image_source=item.get("image_source", "fallback"),
+            image_status=item.get("image_status", "fallback"),
             rating=item.get("rating", 4.0),
             margin_pct=item.get("margin_pct"),
             inventory_count=item.get("inventory_count"),
@@ -170,9 +181,10 @@ async def get_recommendations(
         ]
         db.add_all(logs_to_insert)
         await db.commit()
-    except Exception:
-        # Non-blocking logging failure
-        pass
+    except Exception as e:
+        # Non-blocking logging warning
+        import logging
+        logging.getLogger(__name__).warning(f"Could not persist recommendation audit log: {e}")
 
     return RecommendationResponse(
         request_id=request_id,

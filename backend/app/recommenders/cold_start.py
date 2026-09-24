@@ -84,11 +84,18 @@ class ColdStartEngine:
 
             scored_candidates.append({
                 "item_id": item_id,
+                "bigbasket_product_id": _get_val(item, "bigbasket_product_id", item_id),
+                "retailrocket_item_id": _get_val(item, "retailrocket_item_id"),
                 "name": _get_val(item, "name"),
                 "category_name": _get_val(item, "category_name"),
                 "subcategory": _get_val(item, "subcategory"),
                 "brand": _get_val(item, "brand"),
+                "description": _get_val(item, "description"),
                 "price": _get_val(item, "price", 299.0),
+                "rating": _get_val(item, "rating", 4.0),
+                "image_url": _get_val(item, "image_url"),
+                "image_source": _get_val(item, "image_source", "fallback"),
+                "image_status": _get_val(item, "image_status", "fallback"),
                 "margin_pct": _get_val(item, "margin_pct", 20.0),
                 "inventory_count": _get_val(item, "inventory_count", 100),
                 "quality_score": _get_val(item, "quality_score", 0.7),
@@ -125,11 +132,18 @@ class ColdStartEngine:
 
         return {
             "item_id": item_id,
+            "bigbasket_product_id": _get_val(cold_item, "bigbasket_product_id", item_id),
+            "retailrocket_item_id": _get_val(cold_item, "retailrocket_item_id"),
             "name": _get_val(cold_item, "name"),
             "category_name": _get_val(cold_item, "category_name"),
             "subcategory": _get_val(cold_item, "subcategory"),
             "brand": _get_val(cold_item, "brand"),
+            "description": _get_val(cold_item, "description"),
             "price": _get_val(cold_item, "price", 299.0),
+            "rating": _get_val(cold_item, "rating", 4.0),
+            "image_url": _get_val(cold_item, "image_url"),
+            "image_source": _get_val(cold_item, "image_source", "fallback"),
+            "image_status": _get_val(cold_item, "image_status", "fallback"),
             "margin_pct": _get_val(cold_item, "margin_pct", 20.0),
             "inventory_count": _get_val(cold_item, "inventory_count", 100),
             "quality_score": _get_val(cold_item, "quality_score", 0.7),
@@ -141,5 +155,49 @@ class ColdStartEngine:
             "recommendation_source": "cold_start_item_boost",
         }
 
+    def recommend_for_cold_item(
+        self,
+        item_id: int,
+        candidate_items: List[Any],
+        limit: int = 10,
+    ) -> List[Dict[str, Any]]:
+        """
+        Recommends content-similar items for a cold-start item.
+        """
+        scored = []
+        for candidate in candidate_items:
+            cid = _get_val(candidate, "item_id")
+            if cid == item_id:
+                continue
+            sim = content_recommender.get_item_similarity(item_id, cid)
+            score = sim if sim is not None else 0.5
+            scored.append({
+                "item_id": cid,
+                "bigbasket_product_id": _get_val(candidate, "bigbasket_product_id", cid),
+                "retailrocket_item_id": _get_val(candidate, "retailrocket_item_id"),
+                "name": _get_val(candidate, "name"),
+                "category_name": _get_val(candidate, "category_name"),
+                "subcategory": _get_val(candidate, "subcategory"),
+                "brand": _get_val(candidate, "brand"),
+                "description": _get_val(candidate, "description"),
+                "price": _get_val(candidate, "price", 299.0),
+                "rating": _get_val(candidate, "rating", 4.0),
+                "image_url": _get_val(candidate, "image_url"),
+                "image_source": _get_val(candidate, "image_source", "fallback"),
+                "image_status": _get_val(candidate, "image_status", "fallback"),
+                "margin_pct": _get_val(candidate, "margin_pct", 20.0),
+                "inventory_count": _get_val(candidate, "inventory_count", 100),
+                "quality_score": _get_val(candidate, "quality_score", 0.7),
+                "business_priority": _get_val(candidate, "business_priority", 0.0),
+                "collaborative_score": None,
+                "content_score": round(score, 5),
+                "relevance_score": round(score, 5),
+                "is_cold_start": True,
+                "recommendation_source": "cold_start_item_boost",
+            })
+        scored.sort(key=lambda x: x["relevance_score"], reverse=True)
+        return scored[:limit]
+
 
 cold_start_engine = ColdStartEngine()
+

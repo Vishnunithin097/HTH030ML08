@@ -26,15 +26,15 @@ async def login(payload: AdminLogin, db: AsyncSession = Depends(get_async_db)):
         stmt = select(Admin).where(Admin.username == payload.username)
         result = await db.execute(stmt)
         admin = result.scalar_one_or_none()
-    except Exception:
-        # Fallback if offline/direct testing
-        pass
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"Database admin lookup failed during auth: {e}")
 
-    # Validate against DB or fallback default admin credentials
+    # Validate against DB or fallback default admin credentials for local dev
     is_valid = False
     if admin:
         is_valid = verify_password(payload.password, admin.hashed_password)
-    elif payload.username == "admin" and payload.password == "Admin@123":
+    elif settings.ENVIRONMENT.lower() != "production" and payload.username == "admin" and payload.password == "Admin@123":
         is_valid = True
 
     if not is_valid:

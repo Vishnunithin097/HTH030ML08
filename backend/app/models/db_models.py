@@ -39,6 +39,8 @@ class Item(Base):
     __tablename__ = "items"
 
     item_id = Column(BigInteger, primary_key=True, index=True)
+    bigbasket_product_id = Column(BigInteger, nullable=True, index=True)
+    retailrocket_item_id = Column(BigInteger, nullable=True, index=True)
     name = Column(Text, nullable=True)
     category_id = Column(Integer, nullable=True)
     category_name = Column(Text, nullable=True)
@@ -48,6 +50,8 @@ class Item(Base):
     price = Column(Numeric(10, 2), nullable=True)
     rating = Column(Numeric(3, 2), nullable=True)
     image_url = Column(Text, nullable=True)
+    image_source = Column(Text, nullable=True, default="fallback")
+    image_status = Column(Text, nullable=True, default="fallback")
     tags = Column(ARRAY(Text), nullable=False, default=list, server_default=text("'{}'"))
     created_at = Column(DateTime, nullable=True)
     is_synthetic_cold_demo = Column(Boolean, nullable=False, default=False, server_default=text("FALSE"))

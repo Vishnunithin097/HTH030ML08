@@ -83,16 +83,29 @@ class ContentBasedRecommender:
         self, user_profile_vec: sp.csr_matrix, candidate_product_ids: List[int]
     ) -> Dict[int, float]:
         """
-        Computes batch cosine similarities across candidate items efficiently.
+        Computes batch cosine similarities across candidate items efficiently using sparse dot products.
         """
-        if user_profile_vec is None or self.store.tfidf_matrix is None:
+        if user_profile_vec is None or self.store.tfidf_matrix is None or not candidate_product_ids:
             return {}
 
-        results: Dict[int, float] = {}
+        valid_pids = []
+        row_indices = []
         for pid in candidate_product_ids:
-            score = self.predict_score(user_profile_vec, pid)
-            if score is not None:
-                results[pid] = score
+            idx = self.store.product_id_to_idx.get(pid)
+            if idx is not None and idx < self.store.tfidf_matrix.shape[0]:
+                valid_pids.append(pid)
+                row_indices.append(idx)
+
+        if not row_indices:
+            return {}
+
+        # Fast vectorized sparse matrix multiplication (1, 31138) x (N, 31138).T -> (1, N)
+        sub_matrix = self.store.tfidf_matrix[row_indices]
+        sim_scores = user_profile_vec.dot(sub_matrix.T).toarray()[0]
+
+        results: Dict[int, float] = {}
+        for pid, score in zip(valid_pids, sim_scores):
+            results[pid] = float(np.round(max(0.0, min(float(score), 1.0)), 5))
 
         return results
 
@@ -108,6 +121,7 @@ class ContentBasedRecommender:
         sim = float(va.dot(vb.T).toarray()[0][0])
         return float(np.round(max(0.0, min(sim, 1.0)), 5))
 
+    get_item_similarity = item_similarity
 
     def recommend(
         self,
@@ -134,20 +148,19 @@ class ContentBasedRecommender:
         excluded = set(interacted_to_exclude or interacted_product_ids or [])
 
         if candidate_product_ids is None:
-            candidate_product_ids = list(self.store.product_id_to_row.keys())[:500]
+            candidate_product_ids = list(self.store.product_id_to_idx.keys())[:500]
 
-        scored_candidates = []
-        for pid in candidate_product_ids:
-            if pid in excluded:
-                continue
+        filtered_candidates = [pid for pid in candidate_product_ids if pid not in excluded]
+        batch_scores = self.predict_batch(user_profile_vec, filtered_candidates)
 
-            score = self.predict_score(user_profile_vec, pid)
-            if score is not None:
-                scored_candidates.append({
-                    "item_id": pid,
-                    "content_score": score,
-                    "recommendation_source": "tfidf_content_based",
-                })
+        scored_candidates = [
+            {
+                "item_id": pid,
+                "content_score": score,
+                "recommendation_source": "tfidf_content_only",
+            }
+            for pid, score in batch_scores.items()
+        ]
 
         scored_candidates.sort(key=lambda x: x["content_score"], reverse=True)
         for idx, item in enumerate(scored_candidates[:top_k]):
