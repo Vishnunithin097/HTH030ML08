@@ -294,9 +294,10 @@ export const Dashboard: React.FC = () => {
                     <div key={p.item_id} className="p-3 bg-slate-50 rounded-lg border border-slate-200 flex gap-3 items-center">
                       <div className="w-14 h-14 rounded bg-white border border-slate-200 shrink-0 overflow-hidden">
                         <ProductImage
-                          src={p.image_url}
-                          alt={p.name}
+                          productId={p.item_id}
+                          productName={p.name}
                           category={p.category_name}
+                          imageUrl={p.image_url}
                           imageStatus={p.image_status}
                           className="w-full h-full"
                         />

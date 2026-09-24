@@ -1,71 +1,74 @@
 import React, { useState } from 'react';
-import { Package } from 'lucide-react';
 
-interface ProductImageProps {
-  src?: string | null;
-  alt: string;
+export interface ProductImageProps {
+  productId?: number;
+  productName: string;
+  brand?: string;
   category?: string;
-  imageStatus?: string;
+  imageUrl?: string | null;
   imageSource?: string;
+  imageStatus?: string;
   className?: string;
 }
 
 export const ProductImage: React.FC<ProductImageProps> = ({
-  src,
-  alt,
-  category = 'Catalog Item',
+  productId,
+  productName,
+  brand,
+  category = 'General',
+  imageUrl,
+  imageSource,
   imageStatus,
   className = 'w-full h-44',
 }) => {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
 
-  // Derive initial character for generic fallback
-  const initial = alt ? alt.trim().charAt(0).toUpperCase() : 'P';
+  // Compute canonical alt text
+  const altText = brand ? `${brand} ${productName}`.trim() : productName;
+
+  // Resolve initial image source or default category fallback
+  const getCategoryFallback = () => {
+    const cat = (category || 'general').toLowerCase();
+    if (cat.includes('beauty')) return '/product-images/fallback/beauty_hygiene.svg';
+    if (cat.includes('gourmet')) return '/product-images/fallback/gourmet_world_food.svg';
+    if (cat.includes('kitchen')) return '/product-images/fallback/kitchen_garden_pets.svg';
+    if (cat.includes('clean')) return '/product-images/fallback/cleaning_household.svg';
+    if (cat.includes('snack')) return '/product-images/fallback/snacks_branded_foods.svg';
+    if (cat.includes('grain') || cat.includes('oil')) return '/product-images/fallback/foodgrains_oil_masala.svg';
+    if (cat.includes('bakery') || cat.includes('dairy')) return '/product-images/fallback/bakery_cakes_dairy.svg';
+    if (cat.includes('beverage')) return '/product-images/fallback/beverages.svg';
+    if (cat.includes('baby')) return '/product-images/fallback/baby_care.svg';
+    if (cat.includes('fruit') || cat.includes('veg')) return '/product-images/fallback/fruits_vegetables.svg';
+    if (cat.includes('meat') || cat.includes('egg') || cat.includes('fish')) return '/product-images/fallback/eggs_meat_fish.svg';
+    return '/product-images/fallback/general.svg';
+  };
+
+  const activeSrc = !error && imageUrl ? imageUrl : getCategoryFallback();
 
   return (
-    <div className={`relative overflow-hidden bg-slate-50 border-b border-slate-100 flex items-center justify-center ${className}`}>
-      {/* Loading Skeleton */}
-      {!loaded && !error && (
-        <div className="absolute inset-0 bg-gradient-to-r from-slate-100 via-slate-200/60 to-slate-100 animate-pulse" />
+    <div className={`relative overflow-hidden bg-slate-50/70 border-b border-slate-100 flex items-center justify-center ${className}`}>
+      {/* Soft Image Skeleton */}
+      {!loaded && (
+        <div className="absolute inset-0 bg-slate-100 animate-pulse" />
       )}
 
-      {/* Actual Image */}
-      {src && !error ? (
-        <img
-          src={src}
-          alt={alt}
-          loading="lazy"
-          onLoad={() => setLoaded(true)}
-          onError={() => {
+      {/* Product Image Asset */}
+      <img
+        src={activeSrc}
+        alt={altText}
+        loading="lazy"
+        onLoad={() => setLoaded(true)}
+        onError={() => {
+          if (!error) {
             setError(true);
-            setLoaded(true);
-          }}
-          className={`w-full h-full object-contain p-2 transition-opacity duration-200 ${
-            loaded ? 'opacity-100' : 'opacity-0'
-          }`}
-        />
-      ) : (
-        /* Graceful Deterministic Fallback */
-        <div className="flex flex-col items-center justify-center p-4 text-center">
-          <div className="w-12 h-12 rounded-full bg-emerald-50 border border-emerald-200/70 flex items-center justify-center text-emerald-800 font-bold text-base mb-1.5 shadow-xs">
-            {initial}
-          </div>
-          <span className="text-xs font-medium text-slate-600 line-clamp-1 max-w-[90%]">
-            {alt || 'Product'}
-          </span>
-          <span className="text-[11px] text-slate-400 mt-0.5 line-clamp-1">
-            {category}
-          </span>
-        </div>
-      )}
-
-      {/* Subtle image status badge if non-verified fallback */}
-      {imageStatus === 'fallback' && (
-        <span className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded text-[9px] font-medium bg-slate-900/60 text-white backdrop-blur-xs">
-          Catalog Preview
-        </span>
-      )}
+          }
+          setLoaded(true);
+        }}
+        className={`w-full h-full object-contain p-2.5 transition-opacity duration-200 ${
+          loaded ? 'opacity-100' : 'opacity-0'
+        }`}
+      />
     </div>
   );
 };

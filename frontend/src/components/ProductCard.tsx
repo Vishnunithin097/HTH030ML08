@@ -60,9 +60,11 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
         {/* Product Image */}
         <ProductImage
-          src={item.image_url}
-          alt={item.name || `Product #${item.item_id}`}
+          productId={item.item_id}
+          productName={item.name || `Product #${item.item_id}`}
+          brand={item.brand}
           category={item.category_name}
+          imageUrl={item.image_url}
           imageStatus={item.image_status}
           imageSource={item.image_source}
           className="w-full h-40 bg-white"

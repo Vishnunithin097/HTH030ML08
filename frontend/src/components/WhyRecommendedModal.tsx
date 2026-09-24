@@ -109,9 +109,11 @@ export const WhyRecommendedModal: React.FC<WhyRecommendedModalProps> = ({ item, 
           <div className="bg-slate-50 p-3.5 rounded-lg border border-slate-200 flex gap-4 items-center">
             <div className="w-20 h-20 rounded-md overflow-hidden bg-white border border-slate-200 shrink-0">
               <ProductImage
-                src={item.image_url}
-                alt={item.name || `Item #${item.item_id}`}
+                productId={item.item_id}
+                productName={item.name || `Product #${item.item_id}`}
+                brand={item.brand}
                 category={item.category_name}
+                imageUrl={item.image_url}
                 imageStatus={item.image_status}
                 imageSource={item.image_source}
                 className="w-full h-full"
