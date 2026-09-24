@@ -3,6 +3,11 @@
 .env.local
 *.env
 
+# Large Raw Datasets
+backend/data/raw/
+*.csv
+*.zip
+
 # Python
 __pycache__/
 *.py[cod]
